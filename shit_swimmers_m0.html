@@ -564,7 +564,7 @@ const buttOf = p => {       // 游泳時在身體末端；直立時在骨盆後�
 const handOf = p => p.pos.clone().addScaledVector(p.fwd, 0.35).add(new V3(-p.fwd.z * 0.5, 0.55, p.fwd.x * 0.5));   // 右肩上方，從背後看得到
 
 /* ---------- Game state ---------- */
-const G = { mode: 'menu', time: 0, diffuseAcc: 0, players: [], me: null, partner: null, carry: false, blobs: [], solids: [], drops: [], rings: [], ringIdx: 0, ringStart: null, targets: [], carryHits: 0, carryLeft: 0, carryDone: false, recoil: false, viewYaw: 0, viewPitch: -0.12, heading: 0, p2Yaw: 0, p2Pitch: 0, hitFx: 0, camPos: new V3(), meTint: 0, sprintFx: 0, fireLock: false, near: null, shoulder: 0, match: null, auth: true, net: null, heldIgnore: 0, seenHit: 0, seenDealt: 0, wasFiring: false, chartAcc: 0 };
+const G = { mode: 'menu', time: 0, diffuseAcc: 0, players: [], me: null, partner: null, carry: false, blobs: [], solids: [], drops: [], rings: [], ringIdx: 0, ringStart: null, targets: [], carryHits: 0, carryLeft: 0, carryDone: false, recoil: false, viewYaw: 0, viewPitch: -0.12, heading: 0, p2Yaw: 0, p2Pitch: 0, hitFx: 0, camPos: new V3(), meTint: 0, fireLock: false, near: null, shoulder: 0, match: null, auth: true, net: null, heldIgnore: 0, seenHit: 0, seenDealt: 0, wasFiring: false, chartAcc: 0 };
 const LOG = { shots: { solo: 0, carry: 0 }, hits: { solo: 0, carry: 0 }, rings: [], carry: [] };
 const keys = new Set(); let mouseDown = false;
 
@@ -1899,14 +1899,9 @@ function updateCamera(dt) {
   const back = f.clone().negate(), wantDist = high ? Math.max(TUNE.camDist, 6.5) : TUNE.camDist;
   const dist = Math.max(0.8, Math.min(wantDist, rayBoxes(target, back, wantDist) - 0.3));
   const want = target.clone().addScaledVector(back, dist);
-  G.camPos.lerp(want, 1 - Math.exp(-14 * dt));
+  G.camPos.copy(want);
   camera.position.copy(G.camPos);
   camera.lookAt(G.camPos.clone().addScaledVector(f, 10));
-  const queasy = clamp((me.nausea - 30) / 70, 0, 1);       // 越噁心鏡頭越暈
-  if (queasy > 0) camera.rotateZ(Math.sin(G.time * 1.7) * 0.09 * queasy);
-  const sprinting = (keys.has('ShiftLeft') || keys.has('ShiftRight')) && me.vel.length() > 5;
-  G.sprintFx += ((sprinting ? 1 : 0) - G.sprintFx) * (1 - Math.exp(-5 * dt));
-  camera.fov = 70 + 9 * G.sprintFx + Math.sin(G.time * 2.3) * 3 * queasy; camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
   const under = camera.position.y < WATER_Y;
   const depthT = clamp(-camera.position.y / MAX_DEPTH, 0, 1);
