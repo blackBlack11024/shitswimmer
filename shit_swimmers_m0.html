@@ -1,0 +1,2137 @@
+<meta charset="utf-8">
+<title>屎作泳者 M0</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;700&display=swap">
+<style>
+/* Layout: 全畫面 3D 泳池，資訊排列參考潛水電腦錶；單一深色外觀 */
+:root {
+  --bg: #071c22; --panel: #0c2a31ee; --line: #2c5560; --fg: #e4efe9; --dim: #94aeb0;
+  --amber: #e0a83c; --bad: #e0663c; --ok: #7fc48a; --teamA: #a8702a; --teamB: #6d8a3a;
+  --sans: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); overflow: hidden; }
+#view { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+#hud { position: fixed; inset: 0; pointer-events: none; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+#tint { position: absolute; inset: 0; background: #5d7a1f; opacity: 0; }
+#cross { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px; border: 1.5px solid #ffffffcc; border-radius: 50%; }
+#cross.hit { border-color: var(--amber); transform: scale(1.5); }
+#computer { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: 16px; width: 228px; background: var(--panel); border: 1px solid var(--line); padding: 10px 12px; display: grid; gap: 6px; font-size: 12px; }
+#depth { font-size: 34px; font-weight: 600; line-height: 1; }
+#depth small { font-size: 13px; color: var(--dim); }
+.row { display: flex; justify-content: space-between; gap: 8px; color: var(--dim); }
+.row b { color: var(--fg); font-weight: 400; }
+.bar { height: 5px; background: #ffffff1c; }
+.bar i { display: block; height: 100%; background: var(--fg); }
+#barNausea i { background: var(--teamB); }
+#barRes i { background: var(--amber); }
+#gauge { position: absolute; right: max(18px, env(safe-area-inset-right, 0px)); top: 50%; transform: translateY(-50%); height: 46vh; width: 44px; border-left: 2px solid #ffffff88; }
+#gauge span { position: absolute; left: 0; width: 8px; border-top: 1px solid #ffffff88; font-size: 11px; color: #ffffffcc; text-shadow: 0 1px 2px #000; }
+#gauge span em { position: absolute; left: 12px; top: -8px; font-style: normal; }
+#gaugeMe { position: absolute; left: -7px; width: 12px; height: 12px; background: var(--amber); border-radius: 50%; margin-top: -6px; }
+#score { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--line); padding: 6px 14px; display: flex; gap: 16px; font-size: 13px; white-space: nowrap; }
+#objective { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); font-family: var(--sans); font-size: 14px; text-shadow: 0 1px 3px #000; text-align: center; width: min(90vw, 620px); }
+#toast { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); font-family: var(--sans); font-size: 14px; background: var(--panel); padding: 5px 12px; border: 1px solid var(--line); }
+#menu { position: fixed; inset: 0; overflow-y: auto; background: #04141acc; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#card { max-width: 860px; margin: 0 auto; display: grid; gap: 18px; }
+h1 { margin: 0; font-size: 34px; text-wrap: balance; }
+h1 span { display: block; font: 600 12px var(--mono); letter-spacing: .14em; color: var(--amber); margin-bottom: 6px; }
+h2 { margin: 0 0 8px; font-size: 15px; color: var(--amber); }
+p { margin: 0; line-height: 1.7; max-width: 65ch; }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+button { font: inherit; color: var(--fg); background: #123a44; border: 1px solid var(--line); padding: 12px; text-align: left; cursor: pointer; display: grid; gap: 4px; }
+button:hover { background: #1a4d59; border-color: var(--amber); }
+button:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+button b { font-size: 15px; }
+button small { color: var(--dim); line-height: 1.5; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.cols > div { min-width: 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+td { padding: 3px 8px 3px 0; border-bottom: 1px solid #2c556055; vertical-align: top; line-height: 1.5; }
+td:first-child { font-family: var(--mono); color: var(--amber); white-space: nowrap; }
+.slider { display: grid; grid-template-columns: 92px 1fr 44px; gap: 8px; align-items: center; font-size: 13px; margin-bottom: 4px; }
+.slider input { width: 100%; min-width: 0; accent-color: var(--amber); }
+.slider output { font-family: var(--mono); text-align: right; }
+textarea { width: 100%; height: 110px; box-sizing: border-box; background: #05181d; color: var(--fg); border: 1px solid var(--line); font: 12px var(--mono); padding: 8px; }
+#copy { justify-self: start; padding: 8px 12px; margin-top: 6px; }
+#loadErr { color: var(--bad); }
+#splats { position: absolute; inset: 0; width: 100%; height: 100%; }
+#feed { position: absolute; top: 88px; right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 4px; justify-items: end; font: 13px var(--sans); }
+#feed div { background: var(--panel); padding: 3px 8px; border: 1px solid var(--line); }
+#dead { position: absolute; top: 34%; left: 50%; transform: translateX(-50%); font: 700 26px var(--sans); text-shadow: 0 2px 6px #000; text-align: center; width: min(90vw, 620px); }
+#board, #resultCard { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; }
+#board { position: absolute; top: 18%; left: 50%; transform: translateX(-50%); width: min(92vw, 520px); font-family: var(--sans); }
+#board td:first-child, #resultCard td:first-child { font-family: var(--sans); color: var(--fg); white-space: normal; }
+.teamA { color: #d09a4c; } .teamB { color: #a9c75a; }
+#result { position: fixed; inset: 0; display: grid; place-items: center; background: #04141aaa; padding: 16px; overflow-y: auto; }
+#resultCard { width: min(100%, 520px); display: grid; gap: 12px; }
+#resultCard h2 { font-size: 26px; margin: 0; color: var(--fg); }
+.btnRow { display: flex; flex-wrap: wrap; gap: 8px; }
+.btnRow button { padding: 8px 14px; }
+#nickRow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
+#nick { font: inherit; color: var(--fg); background: #05181d; border: 1px solid var(--line); padding: 6px 8px; width: 150px; }
+#mmPanel { border: 1px solid var(--amber); padding: 12px; display: grid; gap: 8px; }
+@media (max-width: 700px) { #computer, #gauge { display: none; } #score { font-size: 11px; gap: 8px; } h1 { font-size: 27px; } }
+</style>
+
+<canvas id="view"></canvas>
+<div id="hud" hidden>
+  <div id="tint"></div>
+  <canvas id="splats"></canvas>
+  <div id="cross"></div>
+  <div id="score"></div>
+  <div id="objective"></div>
+  <div id="toast" hidden></div>
+  <div id="feed"></div>
+  <div id="dead" hidden></div>
+  <div id="board" hidden></div>
+  <div id="gauge"><div id="gaugeMe"></div></div>
+  <div id="computer">
+    <div id="depth">0.0<small> m 深度</small></div>
+    <div class="row"><span>速度</span><b id="spd"></b></div>
+    <div class="row"><span>類型 1/2/3</span><b id="typ"></b></div>
+    <div class="row"><span>手上</span><b id="held"></b></div>
+    <div class="row"><span>所在水域</span><b id="zone"></b></div>
+    <div class="row"><span>排泄物資源</span><b id="resV"></b></div><div class="bar" id="barRes"><i></i></div>
+    <div class="row"><span>噁心值</span><b id="nauV"></b></div><div class="bar" id="barNausea"><i></i></div>
+    <div class="row"><span>衝刺體力</span></div><div class="bar" id="barSta"><i></i></div>
+  </div>
+</div>
+<div id="result" hidden>
+  <div id="resultCard">
+    <h2 id="resTitle"></h2>
+    <p id="resSub"></p>
+    <div id="resTable"></div>
+    <div class="btnRow"><button id="rAgain"><b>再配對一場</b></button><button id="rSolo"><b>單人再打一場</b></button><button id="rMenu"><b>回選單</b></button></div>
+  </div>
+</div>
+<div id="menu">
+  <div id="card">
+    <h1><span>SHIT SWIMMERS · M0 DESIGN TEST · V4</span>屎作泳者：設計驗證原型</h1>
+    <p>3 對 3 污染對戰，整個水體都是畫布，3 分鐘內污染水體比例高的隊伍獲勝。噁心值滿了會被噁死，爆出一團對方的雲團，5 秒後回城。人數不足由機器人補滿。這是粗糙的測試版，需要鍵盤和滑鼠。</p>
+    <p id="loadErr" hidden>3D 畫面無法啟動。請確認網路連線，並使用支援 WebGL2 的瀏覽器。</p>
+    <div id="nickRow"><label for="nick">暱稱</label><input id="nick" maxlength="12" autocomplete="off"></div>
+    <div id="mmPanel" hidden>
+      <b id="mmText"></b>
+      <div class="btnRow"><button id="mmGo"><b>立刻開打</b></button><button id="mmCancel"><b>取消配對</b></button></div>
+    </div>
+    <div class="modes">
+      <button id="resume" hidden><b>繼續</b><small>回到目前的遊戲。</small></button>
+      <button id="leave" hidden><b>離開對局</b><small>多人對局不會暫停；你離開後由機器人接手。</small></button>
+      <button id="mMatch" disabled><b>開始配對</b><small id="mMatchNote">正在連線…</small></button>
+      <button id="mSolo"><b>單人對局</b><small>你和 2 名機器人隊友，對 3 名機器人，打一場完整的 3 分鐘。</small></button>
+      <button id="mRings"><b>穿環測試</b><small>依序穿過 10 個立體圓環，記錄完成時間。</small></button>
+      <button id="mCarry"><b>扛人靶場</b><small>兩人同機：一人用鍵盤游，一人用滑鼠瞄準噴射。2 分鐘內打中 3 次移動靶。</small></button>
+    </div>
+    <div class="cols">
+      <div>
+        <h2>單人操作</h2>
+        <table>
+          <tr><td>W A S D</td><td>朝鏡頭方向游動</td></tr>
+          <tr><td>滑鼠</td><td>轉動鏡頭</td></tr>
+          <tr><td>Space / C</td><td>上浮 / 下潛</td></tr>
+          <tr><td>Shift</td><td>衝刺；搭配上浮可躍出水面</td></tr>
+          <tr><td>左鍵 / F</td><td>從屁股噴射，方向固定在身體正後方；類型 1 是把固體排在身後</td></tr>
+          <tr><td>E</td><td>撿起附近的固體，再按一次放下；敵方的固體也能撿</td></tr>
+          <tr><td>拿著固體時</td><td>左鍵或 F 朝準星投擲</td></tr>
+          <tr><td>按住 Q</td><td>回頭看，方便對準身後</td></tr>
+          <tr><td>1 2 3</td><td>固體 / 液體 / 黏稠（正式版為固定類型）</td></tr>
+          <tr><td>R</td><td>開關噴射反作用力</td></tr>
+          <tr><td>T</td><td>靠近隊友時扛起，再按一次放下；被扛時按 T 跳下</td></tr>
+          <tr><td>按住 Tab</td><td>對局計分板</td></tr>
+          <tr><td>[ ]</td><td>調整擴散的停止濃度</td></tr>
+          <tr><td>Esc / M</td><td>回到此選單</td></tr>
+        </table>
+        <h2 style="margin-top:14px">扛人時（兩人同機）</h2>
+        <table>
+          <tr><td>扛人者</td><td>W S 前進後退，A D 轉向，Space / C 上下，Shift 衝刺</td></tr>
+          <tr><td>被扛者</td><td>滑鼠瞄準準星，左鍵噴射；也可用手把右搖桿與 RT，或方向鍵與 Enter</td></tr>
+        </table>
+        <p style="margin-top:8px">對局中各用自己的電腦：扛人者游得較慢且不能噴射，被扛者自由瞄準噴射。兩人都可能被打中。扛起機器人隊友時，它會自動瞄準噴射。</p>
+      </div>
+      <div>
+        <h2>手感與回復（立即生效）</h2>
+        <div id="sliders"></div>
+        <h2 style="margin-top:14px">這一版請測試</h2>
+        <table>
+          <tr><td>配對</td><td>能否配到人，連線時對手動作順不順</td></tr>
+          <tr><td>對局</td><td>3 分鐘長度如何，想不想再打一場</td></tr>
+          <tr><td>擊殺</td><td>被噁死、回城的節奏是否合適</td></tr>
+          <tr><td>扛人</td><td>對局中扛隊友是否值得，兩人配合好不好玩</td></tr>
+          <tr><td>噁心</td><td>屎、噴流和雲團夠不夠噁心</td></tr>
+          <tr><td>回復</td><td>停在己方雲團回得夠不夠快，可調「雲團回復」</td></tr>
+          <tr><td>固體</td><td>撿起、投擲，路徑留下的雲團和變小過程是否像你要的</td></tr>
+          <tr><td>姿勢</td><td>停下時是否自然直立，開始游時是否順</td></tr>
+          <tr><td>手感</td><td>調上面的滑桿，告訴我哪組數值最舒服</td></tr>
+          <tr><td>下潛</td><td>越深是否明顯越暗，能否感覺正在往下</td></tr>
+          <tr><td>液體</td><td>噴出去像不像一道水柱，進水後像不像散開</td></tr>
+          <tr><td>扛人</td><td>滑鼠瞄準是否容易，兩分鐘能否打中 3 次</td></tr>
+          <tr><td>水下</td><td>是否會為了搶水量和躲雲團往下潛</td></tr>
+          <tr><td>畫布</td><td>整池水被染色的感覺，是否是你要的立體版</td></tr>
+        </table>
+        <h2 style="margin-top:14px">本次測試紀錄</h2>
+        <textarea id="log" readonly aria-label="測試紀錄"></textarea>
+        <button id="copy">複製紀錄</button>
+      </div>
+    </div>
+    <p>回到己方基地（出生點的光柱）會快速消除噁心並補滿資源。待在己方雲團裡，資源也會快速回復；待在敵方雲團裡會累積噁心值，敵方黏稠雲團還會拖慢速度。水面以上的牆與平台仍是表面污染，不計入水體分數。</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+'use strict';
+const $ = id => document.getElementById(id);
+if (!window.THREE) { $('loadErr').hidden = false; return; }
+const V3 = THREE.Vector3;
+const SOLID = 0, LIQUID = 1, STICKY = 2;
+const TYPE_NAME = ['固體', '液體', '黏稠'];
+const CELL = 0.5, VOX = 0.5, WATER_Y = 0, DIFFUSE_DT = 0.5, MAX_DEPTH = 12;
+const STOP_BASE = [32, 64, 160];         // 測試泳池的停止濃度
+const SPREAD_K = [0.14, 0.15, 0.02];      // 每次更新的交換比例；立體格子必須 <= 1/6
+const TEAM_RGB = [[150, 96, 30], [84, 112, 38]];
+const SPEC = [
+  { speed: 18, waterDrag: 3, airDrag: 0.1, cost: 18, nausea: 26, mass: 255 * 20, color: 0x5b3a17 },
+  { speed: 20, waterDrag: 2.5, airDrag: 0.3, cost: 1.8, nausea: 3, mass: 255 * 4, rate: 2.4, color: 0x9a6c1e },
+  { speed: 11, waterDrag: 2.2, airDrag: 0.8, cost: 2.6, nausea: 4, mass: 255 * 4, rate: 0.9, color: 0x565c16 },
+];
+const TUNE = { speed: 4.5, accel: 6, coast: 1.6, turn: 5, camDist: 5.5, cloudRes: 24 };
+const EXCRETE_SPEED = 4, REACH = 2.2, SEEP = 42;
+const THROW = { speed: 16, drag: 0.9, rate: 2040, airShare: 0.3, nauseaMin: 8, nauseaMax: 34 };   // rate：每秒釋放的質量，滿尺寸約 2.5 秒用完
+
+/* ---------- Renderer ---------- */
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ canvas: $('view'), antialias: false }); } catch (e) { $('loadErr').hidden = false; return; }
+if (!renderer.capabilities.isWebGL2) { $('loadErr').hidden = false; return; }
+const PR = Math.min(devicePixelRatio, 1.5);
+const scene = new THREE.Scene();
+const AIR = new THREE.Color(0xb6d0d4), SHALLOW_C = new THREE.Color(0x1b7f92), DEEP_C = new THREE.Color(0x04202f);
+scene.background = AIR.clone();
+scene.fog = new THREE.FogExp2(AIR.clone(), 0.004);
+const camera = new THREE.PerspectiveCamera(70, 1, 0.1, 400);
+const hemi = new THREE.HemisphereLight(0xffffff, 0x35555c, 0.6); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff3dd, 0.42); sun.position.set(20, 40, 12); scene.add(sun);
+
+function tileTexture(a, b) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'); g.fillStyle = a; g.fillRect(0, 0, 64, 64);
+  g.strokeStyle = b; g.lineWidth = 2;
+  for (let i = 0; i <= 64; i += 32) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 64); g.moveTo(0, i); g.lineTo(64, i); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+  return t;
+}
+const MAT = {
+  shallow: new THREE.MeshStandardMaterial({ map: tileTexture('#8fc8cf', '#6aa5ad'), roughness: 0.7 }),
+  deep: new THREE.MeshStandardMaterial({ map: tileTexture('#4d8e9c', '#3a7482'), roughness: 0.7 }),
+  fixture: new THREE.MeshStandardMaterial({ map: tileTexture('#d8d4c4', '#b4b09f'), roughness: 0.8 }),
+};
+
+/* ---------- Static world; surface charts above water only ---------- */
+const boxes = [], charts = [];
+const FACE = {
+  '+y': { n: [0, 1, 0], u: [1, 0, 0], v: [0, 0, -1] }, '-y': { n: [0, -1, 0], u: [1, 0, 0], v: [0, 0, 1] },
+  '+x': { n: [1, 0, 0], u: [0, 0, -1], v: [0, 1, 0] }, '-x': { n: [-1, 0, 0], u: [0, 0, 1], v: [0, 1, 0] },
+  '+z': { n: [0, 0, 1], u: [1, 0, 0], v: [0, 1, 0] }, '-z': { n: [0, 0, -1], u: [-1, 0, 0], v: [0, 1, 0] },
+};
+function addBox(x0, x1, y0, y1, z0, z1, faces, mat) {
+  const b = { min: new V3(x0, y0, z0), max: new V3(x1, y1, z1), charts: {} };
+  boxes.push(b);
+  const geo = new THREE.BoxGeometry(x1 - x0, y1 - y0, z1 - z0);
+  geo.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  const p = geo.attributes.position, n = geo.attributes.normal, uv = geo.attributes.uv;
+  for (let i = 0; i < p.count; i++) {
+    if (Math.abs(n.getY(i)) > 0.5) uv.setXY(i, p.getX(i), p.getZ(i));
+    else if (Math.abs(n.getX(i)) > 0.5) uv.setXY(i, p.getZ(i), p.getY(i));
+    else uv.setXY(i, p.getX(i), p.getY(i));
+  }
+  scene.add(new THREE.Mesh(geo, mat));
+  faces.forEach(f => { b.charts[f] = makeChart(b, f); });
+}
+function makeChart(b, key) {
+  const f = FACE[key], N = new V3(...f.n), U = new V3(...f.u), Vv = new V3(...f.v);
+  const size = new V3().subVectors(b.max, b.min);
+  const center = new V3().addVectors(b.max, b.min).multiplyScalar(0.5).addScaledVector(N, Math.abs(N.x) * size.x / 2 + Math.abs(N.y) * size.y / 2 + Math.abs(N.z) * size.z / 2);
+  const lenU = Math.abs(U.dot(size)), lenV = Math.abs(Vv.dot(size));
+  const w = Math.max(1, Math.ceil(lenU / CELL)), h = Math.max(1, Math.ceil(lenV / CELL));
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d'), img = ctx.createImageData(w, h);
+  const tex = new THREE.CanvasTexture(cv); tex.magFilter = tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(lenU, lenV),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  mesh.matrixAutoUpdate = false;
+  mesh.matrix.makeBasis(U, Vv, N).setPosition(center.clone().addScaledVector(N, 0.02));
+  scene.add(mesh);
+  const c = { U, V: Vv, N, center, lenU, lenV, w, h, ctx, img, tex, mesh,
+    amt: new Float32Array(w * h), own: new Int8Array(w * h).fill(-1), typ: new Uint8Array(w * h), active: false, dirty: false };
+  charts.push(c);
+  return c;
+}
+const PX = 25, PZ = 12.5;
+addBox(-PX, 0, -14, -2, -PZ, PZ, [], MAT.shallow);
+addBox(0, PX, -14, -12, -PZ, PZ, [], MAT.deep);
+addBox(-PX - 2, 0, -2, 1, -PZ - 2, -PZ, ['+z', '+y'], MAT.shallow);
+addBox(-PX - 2, 0, -2, 1, PZ, PZ + 2, ['-z', '+y'], MAT.shallow);
+addBox(0, PX + 2, -12, 1, -PZ - 2, -PZ, ['+z', '+y'], MAT.deep);
+addBox(0, PX + 2, -12, 1, PZ, PZ + 2, ['-z', '+y'], MAT.deep);
+addBox(-PX - 2, -PX, -2, 1, -PZ, PZ, ['+x', '+y'], MAT.shallow);
+addBox(PX, PX + 2, -12, 1, -PZ, PZ, ['-x', '+y'], MAT.deep);
+addBox(-12, -6, -0.2, 0.8, 3, 9, ['+y', '+x', '-x', '+z', '-z'], MAT.fixture);   // 漂浮平台
+addBox(-18, -16, -2, 3, 4, 6, ['+x', '-x', '+z', '-z'], MAT.fixture);            // 淺水柱
+addBox(8, 14, -12, -6, -4, 4, [], MAT.fixture);                                  // 水下設施
+addBox(18, 20, -12, 3, 6, 8, ['+x', '-x', '+z', '-z'], MAT.fixture);             // 深水柱
+addBox(5, 7, -12, 3, -9, -7, ['+x', '-x', '+z', '-z'], MAT.fixture);
+const deckMat = new THREE.MeshStandardMaterial({ color: 0x8d8b7f, roughness: 1 });
+[-PX - 102, PX + 102].forEach(x => { const m = new THREE.Mesh(new THREE.PlaneGeometry(200, 400).rotateX(-Math.PI / 2), deckMat); m.position.set(x, 0.99, 0); scene.add(m); });
+[-PZ - 102, PZ + 102].forEach(z => { const m = new THREE.Mesh(new THREE.PlaneGeometry(54, 200).rotateX(-Math.PI / 2), deckMat); m.position.set(0, 0.99, z); scene.add(m); });
+const water = new THREE.Mesh(new THREE.PlaneGeometry(2 * PX, 2 * PZ).rotateX(-Math.PI / 2),
+  new THREE.MeshStandardMaterial({ color: 0x2f94a6, transparent: true, opacity: 0.42, roughness: 0.2, side: THREE.DoubleSide, depthWrite: false }));
+water.position.y = WATER_Y; water.renderOrder = 5; scene.add(water);
+
+/* 深度刻度：牆上每 2m 一條線，深水區加上數字 */
+function depthLabel(txt) {
+  const c = document.createElement('canvas'); c.width = 128; c.height = 64;
+  const g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.font = 'bold 44px monospace'; g.textAlign = 'center'; g.fillText(txt, 64, 48);
+  return new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+}
+for (let d = 2; d <= 10; d += 2) {
+  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55 });
+  const a = new THREE.Mesh(new THREE.PlaneGeometry(25, 0.08), mat); a.position.set(12.5, -d, -PZ + 0.03); scene.add(a);
+  const b = new THREE.Mesh(new THREE.PlaneGeometry(25, 0.08).rotateY(Math.PI), mat); b.position.set(12.5, -d, PZ - 0.03); scene.add(b);
+  const c = new THREE.Mesh(new THREE.PlaneGeometry(25, 0.08).rotateY(-Math.PI / 2), mat); c.position.set(PX - 0.03, -d, 0); scene.add(c);
+  [[5, -PZ + 0.8], [20, -PZ + 0.8], [5, PZ - 0.8], [20, PZ - 0.8], [PX - 0.8, -6], [PX - 0.8, 6]].forEach(([x, z]) => {
+    const s = depthLabel(d + 'm'); s.position.set(x, -d + 0.35, z); s.scale.set(1.3, 0.65, 1); scene.add(s);
+  });
+}
+
+/* ---------- Water currents ---------- */
+const currents = [
+  { min: new V3(-14, -2, -11), max: new V3(-3, 0, -5), f: () => new V3(2.8, 0, 0) },
+  { min: new V3(8, -12, -11), max: new V3(16, 0, -5), f: () => new V3(0, 2.5, 0) },
+  { min: new V3(9, -8, 3), max: new V3(21, 0, 12), f: p => { const c = new V3(15, p.y, 7.5), d = p.clone().sub(c); return new V3(-d.z, 0, d.x).normalize().multiplyScalar(3); } },
+];
+function currentAt(p) {
+  for (const c of currents) if (p.x > c.min.x && p.x < c.max.x && p.y > c.min.y && p.y < c.max.y && p.z > c.min.z && p.z < c.max.z) return c.f(p);
+  return new V3();
+}
+function randIn(c) { return new V3(c.min.x + Math.random() * (c.max.x - c.min.x), c.min.y + Math.random() * (c.max.y - c.min.y), c.min.z + Math.random() * (c.max.z - c.min.z)); }
+const dot = document.createElement('canvas'); dot.width = dot.height = 32;
+{ const g = dot.getContext('2d'); g.fillStyle = '#fff'; g.beginPath(); g.arc(16, 16, 15, 0, 7); g.fill(); }
+const dotTex = new THREE.CanvasTexture(dot);
+const motes = [];
+const motePos = new Float32Array(360 * 3), moteGeo = new THREE.BufferGeometry();
+currents.forEach(c => { for (let i = 0; i < 120; i++) motes.push({ c, p: randIn(c) }); });
+moteGeo.setAttribute('position', new THREE.BufferAttribute(motePos, 3));
+scene.add(new THREE.Points(moteGeo, new THREE.PointsMaterial({ color: 0xe8fbff, size: 0.07, map: dotTex, transparent: true, opacity: 0.7, depthWrite: false })));
+// 水中懸浮微粒：提供視差，移動與下潛時才看得出位移
+const dustPos = new Float32Array(900 * 3), dustGeo = new THREE.BufferGeometry();
+for (let i = 0; i < 900; i++) {
+  const shallow = Math.random() < 0.2;
+  dustPos.set([shallow ? -Math.random() * PX : Math.random() * PX, shallow ? -Math.random() * 2 : -Math.random() * MAX_DEPTH, (Math.random() * 2 - 1) * PZ], i * 3);
+}
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos, 3));
+scene.add(new THREE.Points(dustGeo, new THREE.PointsMaterial({ color: 0xcfe9ea, size: 0.035, map: dotTex, transparent: true, opacity: 0.55, depthWrite: false })));
+// 氣泡
+const BUB = 160, bubPos = new Float32Array(BUB * 3).fill(-999), bubGeo = new THREE.BufferGeometry(), bubbles = [];
+bubGeo.setAttribute('position', new THREE.BufferAttribute(bubPos, 3));
+const bubPts = new THREE.Points(bubGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.11, map: dotTex, transparent: true, opacity: 0.75, depthWrite: false }));
+bubPts.frustumCulled = false; scene.add(bubPts);
+function spawnBubble(p) { if (bubbles.length < BUB) bubbles.push({ p: p.clone().add(new V3(rnd() * 0.25, rnd() * 0.25, rnd() * 0.25)), life: 1 + Math.random() * 2 }); }
+
+/* ---------- Water volume canvas ---------- */
+const NX = 100, NY = 24, NZ = 50, NN = NX * NY * NZ;
+const VOL = { amt: new Float32Array(NN), own: new Int8Array(NN).fill(-1), typ: new Uint8Array(NN), solid: new Uint8Array(NN), active: false, dirty: false };
+const volOrigin = new V3(-PX, -MAX_DEPTH, -PZ);
+const POL = { stopScale: 1, covered: [0, 0], total: 0, mass: 0, lastDiffuseMs: 0 };
+(function bakeMask() {
+  const p = new V3(); let k = 0;
+  for (let z = 0; z < NZ; z++) for (let y = 0; y < NY; y++) for (let x = 0; x < NX; x++, k++) {
+    p.set(volOrigin.x + (x + 0.5) * VOX, volOrigin.y + (y + 0.5) * VOX, volOrigin.z + (z + 0.5) * VOX);
+    if (pointBox(p)) VOL.solid[k] = 1; else POL.total++;
+  }
+})();
+const volIndex = p => {
+  const x = Math.floor((p.x - volOrigin.x) / VOX), y = Math.floor((p.y - volOrigin.y) / VOX), z = Math.floor((p.z - volOrigin.z) / VOX);
+  if (x < 0 || y < 0 || z < 0 || x >= NX || y >= NY || z >= NZ) return -1;
+  const k = x + y * NX + z * NX * NY;
+  return VOL.solid[k] ? -1 : k;
+};
+const stopOf = t => Math.min(250, STOP_BASE[t] * POL.stopScale);
+function paintVal(c, k, amount, team, type) {
+  if (c.own[k] >= 0 && c.own[k] !== team && c.amt[k] > 0) {
+    c.amt[k] -= amount;
+    if (c.amt[k] < 0) { c.amt[k] = Math.min(255, -c.amt[k]); c.own[k] = team; c.typ[k] = type; }
+    else if (c.amt[k] === 0) c.own[k] = -1;
+  } else {
+    c.amt[k] = Math.min(255, c.amt[k] + amount); c.own[k] = team; c.typ[k] = type;
+  }
+  c.active = c.dirty = true;
+}
+function depositAt(p, mass, team, type) {       // 中心 40%，六個相鄰格各 10%
+  const k = volIndex(p); if (k < 0) return;
+  paintVal(VOL, k, mass * 0.4, team, type);
+  const nb = [k + 1, k - 1, k + NX, k - NX, k + NX * NY, k - NX * NY];
+  for (const n of nb) if (n >= 0 && n < NN && !VOL.solid[n]) paintVal(VOL, n, mass * 0.1, team, type);
+}
+function chartPaint(c, pos, amount, team, type) {
+  const d = pos.clone().sub(c.center);
+  const i = Math.floor((d.dot(c.U) + c.lenU / 2) / CELL), j = Math.floor((d.dot(c.V) + c.lenV / 2) / CELL);
+  if (i < 0 || j < 0 || i >= c.w || j >= c.h) return;
+  paintVal(c, j * c.w + i, amount, team, type);
+}
+function flow(c, a, b, k0, div) {
+  const A = c.amt[a]; if (A <= 0) return false;
+  const t = c.typ[a], stop = stopOf(t);
+  if (A <= stop) return false;
+  const k = SPREAD_K[t] * k0, room = (A - stop) / div;
+  if (c.own[b] < 0 || c.own[b] === c.own[a]) {
+    const B = c.amt[b]; if (B >= A) return false;
+    const f = Math.min(k * (A - B), room); if (f < 0.02) return false;
+    c.amt[a] -= f; c.amt[b] = B + f; c.own[b] = c.own[a]; c.typ[b] = t;
+  } else {                       // 敵我交界：互相抵消
+    const f = Math.min(k * A, room); if (f < 0.02) return false;
+    c.amt[a] -= f; c.amt[b] -= f;
+    if (c.amt[b] <= 0) { c.amt[b] = 0; c.own[b] = -1; }
+  }
+  return true;
+}
+function diffuseVol() {
+  if (!VOL.active) return;
+  const { amt, solid } = VOL; let moved = false, k = 0;
+  const SY = NX, SZ = NX * NY;
+  for (let z = 0; z < NZ; z++) for (let y = 0; y < NY; y++) for (let x = 0; x < NX; x++, k++) {
+    if (amt[k] <= 0) continue;
+    if (x + 1 < NX && !solid[k + 1] && flow(VOL, k, k + 1, 1, 6)) moved = true;
+    if (x > 0 && !solid[k - 1] && flow(VOL, k, k - 1, 1, 6)) moved = true;
+    if (y + 1 < NY && !solid[k + SY] && flow(VOL, k, k + SY, 1, 6)) moved = true;
+    if (y > 0 && !solid[k - SY] && flow(VOL, k, k - SY, 1, 6)) moved = true;
+    if (z + 1 < NZ && !solid[k + SZ] && flow(VOL, k, k + SZ, 1, 6)) moved = true;
+    if (z > 0 && !solid[k - SZ] && flow(VOL, k, k - SZ, 1, 6)) moved = true;
+  }
+  VOL.active = moved; if (moved) VOL.dirty = true;
+}
+function diffuseCharts() {
+  for (const c of charts) {
+    if (!c.active) continue;
+    let moved = false; const { w, h } = c;
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const k = j * w + i;
+      if (c.amt[k] <= 0) continue;
+      if (i + 1 < w && flow(c, k, k + 1, 0.5, 4)) moved = true;
+      if (i > 0 && flow(c, k, k - 1, 0.5, 4)) moved = true;
+      if (j + 1 < h && flow(c, k, k + w, 0.5, 4)) moved = true;
+      if (j > 0 && flow(c, k, k - w, 0.5, 4)) moved = true;
+    }
+    if (moved) c.dirty = true; else c.active = false;
+  }
+}
+function diffuse() {
+  const t0 = performance.now();
+  diffuseVol(); diffuseCharts(); recount();
+  POL.lastDiffuseMs = performance.now() - t0;
+}
+function recount() {
+  POL.covered = [0, 0]; POL.mass = 0;
+  for (let k = 0; k < NN; k++) {
+    const a = VOL.amt[k]; if (a <= 0) continue;
+    POL.mass += a;
+    if (VOL.own[k] >= 0 && a >= stopOf(VOL.typ[k]) * 0.9) POL.covered[VOL.own[k]]++;
+  }
+}
+/* 上傳到 3D 貼圖：R=A 隊濃度、G=B 隊濃度、B=黏稠 */
+const volData = new Uint8Array(NN * 4);
+const volTex = new THREE.DataTexture3D(volData, NX, NY, NZ);
+volTex.format = THREE.RGBAFormat; volTex.type = THREE.UnsignedByteType;
+volTex.minFilter = volTex.magFilter = THREE.LinearFilter; volTex.unpackAlignment = 1;
+volTex.wrapS = volTex.wrapT = volTex.wrapR = THREE.ClampToEdgeWrapping;
+function uploadVol() {
+  if (!VOL.dirty) return; VOL.dirty = false;
+  for (let k = 0, p = 0; k < NN; k++, p += 4) {
+    const a = VOL.amt[k], o = VOL.own[k];
+    volData[p] = o === 0 ? a : 0; volData[p + 1] = o === 1 ? a : 0; volData[p + 2] = VOL.typ[k] === STICKY && a > 0 ? 255 : 0; volData[p + 3] = 255;
+  }
+  volTex.needsUpdate = true;
+}
+function redrawCharts() {
+  for (const c of charts) {
+    if (!c.dirty) continue; c.dirty = false;
+    const d = c.img.data, { w, h } = c;
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const k = j * w + i, p = ((h - 1 - j) * w + i) * 4, a = c.amt[k];
+      if (a <= 0 || c.own[k] < 0) { d[p + 3] = 0; continue; }
+      const rgb = TEAM_RGB[c.own[k]], dark = c.typ[k] === STICKY ? 0.62 : 1;
+      d[p] = rgb[0] * dark; d[p + 1] = rgb[1] * dark; d[p + 2] = rgb[2] * dark;
+      d[p + 3] = Math.min(245, 95 + a * 0.75);
+    }
+    c.ctx.putImageData(c.img, 0, 0); c.tex.needsUpdate = true;
+  }
+}
+
+/* ---------- Volume composite pass ---------- */
+let rt = null;
+const postScene = new THREE.Scene(), postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const postMat = new THREE.RawShaderMaterial({
+  glslVersion: THREE.GLSL3, depthTest: false, depthWrite: false,
+  uniforms: {
+    tColor: { value: null }, tDepth: { value: null }, vol: { value: volTex },
+    invVP: { value: new THREE.Matrix4() }, camPos: { value: new V3() },
+    boxMin: { value: volOrigin.clone() }, boxMax: { value: new V3(PX, WATER_Y, PZ) }, time: { value: 0 },
+  },
+  vertexShader: `in vec3 position; out vec2 vUv; void main(){ vUv = position.xy*0.5+0.5; gl_Position = vec4(position.xy,0.0,1.0); }`,
+  fragmentShader: `precision highp float; precision highp sampler3D;
+    uniform sampler2D tColor; uniform sampler2D tDepth; uniform sampler3D vol;
+    uniform mat4 invVP; uniform vec3 camPos, boxMin, boxMax; uniform float time;
+    in vec2 vUv; out vec4 fragColor;
+    float hash(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }
+    float h3(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453); }
+    float vn(vec3 p){
+      vec3 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+      return mix(mix(mix(h3(i),h3(i+vec3(1,0,0)),f.x),mix(h3(i+vec3(0,1,0)),h3(i+vec3(1,1,0)),f.x),f.y),
+                 mix(mix(h3(i+vec3(0,0,1)),h3(i+vec3(1,0,1)),f.x),mix(h3(i+vec3(0,1,1)),h3(i+vec3(1,1,1)),f.x),f.y),f.z);
+    }
+    void main(){
+      vec3 col = texture(tColor,vUv).rgb;
+      float z = texture(tDepth,vUv).x;
+      vec4 wp = invVP*vec4(vUv*2.0-1.0, z*2.0-1.0, 1.0);
+      vec3 P = wp.xyz/wp.w; vec3 rd = P-camPos; float tScene = length(rd); rd /= tScene;
+      vec3 t0s = (boxMin-camPos)/rd, t1s = (boxMax-camPos)/rd;
+      vec3 a = min(t0s,t1s), b = max(t0s,t1s);
+      float tIn = max(max(a.x,a.y),max(a.z,0.0)), tOut = min(min(b.x,b.y),min(b.z,tScene));
+      if (tOut > tIn) {
+        float span = tOut-tIn, st = max(0.3, span/44.0);
+        float t = tIn + st*hash(gl_FragCoord.xy);
+        vec3 acc = vec3(0.0); float alpha = 0.0;
+        vec3 size = boxMax-boxMin;
+        for (int i=0; i<44 && t<tOut && alpha<0.97; i++, t+=st) {
+          vec3 uvw = (camPos+rd*t-boxMin)/size;
+          vec4 v = texture(vol,uvw);
+          float d = v.r+v.g;
+          if (d > 0.02) {
+            vec3 wp3 = camPos+rd*t;
+            float n = 0.65*vn(wp3*1.1+vec3(0.0,time*0.13,time*0.05))+0.35*vn(wp3*2.9-vec3(time*0.22,0.0,0.0));   // 翻攪的團塊
+            float dens = d*(0.25+1.9*n*n);
+            float aS = 1.0-exp(-dens*3.4*st);
+            vec3 c = (v.r*vec3(0.34,0.19,0.05)+v.g*vec3(0.21,0.29,0.05))/d;
+            c *= mix(1.25,0.5,smoothstep(0.08,0.55,d));                   // 中心又濃又暗，邊緣混濁
+            float k = vn(wp3*6.5+vec3(0.0,time*0.05,0.0));
+            if (k > 0.72) c = mix(c,vec3(0.68,0.56,0.16),0.75);           // 黃色油脂與未消化的渣
+            else if (k < 0.26) c = mix(c,vec3(0.05,0.03,0.01),0.7);       // 黑色碎屑
+            c = mix(c,c*vec3(0.75,0.95,0.45)+vec3(0.0,0.03*sin(time*2.0+wp3.x),0.0),v.b);   // 黏稠偏綠
+            acc += (1.0-alpha)*aS*c; alpha += (1.0-alpha)*aS;
+          }
+        }
+        col = col*(1.0-alpha)+acc;
+      }
+      fragColor = vec4(col,1.0);
+    }`,
+});
+postScene.add(new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1, -1, 0, 3, -1, 0, -1, 3, 0]), 3)), postMat));
+postScene.children[0].frustumCulled = false;
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setPixelRatio(PR); renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  if (rt) { rt.depthTexture.dispose(); rt.dispose(); }
+  rt = new THREE.WebGLRenderTarget(Math.max(1, w * PR | 0), Math.max(1, h * PR | 0), { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+  rt.depthTexture = new THREE.DepthTexture(rt.width, rt.height); rt.depthTexture.type = THREE.UnsignedIntType;
+  postMat.uniforms.tColor.value = rt.texture; postMat.uniforms.tDepth.value = rt.depthTexture;
+}
+addEventListener('resize', resize); resize();
+
+/* ---------- Avatars ---------- */
+function makeAvatar(suit) {
+  const g = new THREE.Group(), skin = new THREE.MeshStandardMaterial({ color: 0xd9b08c, roughness: 0.75 }), cloth = new THREE.MeshStandardMaterial({ color: suit, roughness: 0.7 });
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.33, 1.2, 12).rotateX(Math.PI / 2), skin));
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 14, 10), skin); head.position.z = 0.82; g.add(head);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 10, 0, 6.3, 0, 1.5), cloth); cap.position.z = 0.84; cap.rotation.x = 0.8; g.add(cap);
+  [-0.17, 0.17].forEach(x => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 10), cloth); b.position.set(x, 0, -0.68); g.add(b); });
+  const limb = new THREE.CylinderGeometry(0.075, 0.06, 0.8, 8).translate(0, -0.4, 0);
+  g.limbs = [[-0.3, 0.35, 1], [0.3, 0.35, -1], [-0.14, -0.75, -1], [0.14, -0.75, 1]].map(([x, z, s]) => {
+    const m = new THREE.Mesh(limb, skin); m.position.set(x, 0, z); m.userData.s = s; m.userData.arm = z > 0; g.add(m); return m;
+  });
+  scene.add(g);
+  return g;
+}
+function newPlayer(team, suit, pos, isBot) {
+  return { team, isBot, pos: pos.clone(), vel: new V3(), fwd: new V3(1, 0, 0), res: 100, nausea: 0, stamina: 100, stun: 0, slow: 0, sprayAcc: 0, cool: 0, type: LIQUID, mesh: makeAvatar(suit), layerY: -0.35, way: pos.clone(), wayT: 0, burst: 0, stroke: 0, roll: 0, lastBlob: null, zone: '清水', swimT: 0, swimming: false, faceYaw: Math.PI / 2, lastFire: -9, held: null, heldT: 0, throwFx: 0, idx: 0, slot: 0, name: '', kills: 0, deaths: 0, dead: 0, inv: 0, rs: 0, hitN: 0, dealt: 0, lastBy: null, lastByT: 0, peer: null, netT: null, netF: null, netFire: false, ackAct: 0, tag: null, carrying: null, carriedBy: null };
+}
+const buttOf = p => {       // 游泳時在身體末端；直立時在骨盆後方
+  const s = p.swimT;
+  return p.pos.clone().addScaledVector(p.fwd, -0.9 * s - 0.28 * (1 - s)).add(new V3(0, -0.45 * (1 - s), 0));
+};
+const handOf = p => p.pos.clone().addScaledVector(p.fwd, 0.35).add(new V3(-p.fwd.z * 0.5, 0.55, p.fwd.x * 0.5));   // 右肩上方，從背後看得到
+
+/* ---------- Game state ---------- */
+const G = { mode: 'menu', time: 0, diffuseAcc: 0, players: [], me: null, partner: null, carry: false, blobs: [], solids: [], drops: [], rings: [], ringIdx: 0, ringStart: null, targets: [], carryHits: 0, carryLeft: 0, carryDone: false, recoil: false, viewYaw: 0, viewPitch: -0.12, heading: 0, p2Yaw: 0, p2Pitch: 0, hitFx: 0, camPos: new V3(), meTint: 0, sprintFx: 0, fireLock: false, near: null, shoulder: 0, match: null, auth: true, net: null, heldIgnore: 0, seenHit: 0, seenDealt: 0, wasFiring: false, chartAcc: 0 };
+const LOG = { shots: { solo: 0, carry: 0 }, hits: { solo: 0, carry: 0 }, rings: [], carry: [] };
+const keys = new Set(); let mouseDown = false;
+
+function clearWorld() {
+  G.players.forEach(p => { scene.remove(p.mesh); if (p.tag) scene.remove(p.tag); });
+  G.solids.forEach(s => scene.remove(s.mesh));
+  G.targets.forEach(t => scene.remove(t.mesh));
+  G.rings.forEach(r => scene.remove(r.mesh));
+  Object.assign(G, { players: [], blobs: [], solids: [], drops: [], rings: [], targets: [], partner: null, carry: false, time: 0, diffuseAcc: 0, match: null, auth: true });
+  bases.forEach(b => { b.visible = false; });
+  $('feed').textContent = ''; $('dead').hidden = true; $('board').hidden = true; $('result').hidden = true;
+  screenSplats.length = 0;
+  bubbles.length = 0;
+  for (const c of charts) { c.amt.fill(0); c.own.fill(-1); c.typ.fill(0); c.active = false; c.dirty = true; }
+  VOL.amt.fill(0); VOL.own.fill(-1); VOL.typ.fill(0); VOL.active = false; VOL.dirty = true;
+  recount();
+}
+function start(mode) {
+  clearWorld(); G.mode = mode; POL.stopScale = 1;
+  G.me = newPlayer(0, 0x2e6fb0, new V3(-22, -0.35, 0), false); G.players.push(G.me);
+  G.viewYaw = Math.PI / 2; G.viewPitch = -0.12; G.camPos.set(-28, 1, 0);
+  G.me.fwd.set(1, 0, 0);
+  if (mode === 'rings') buildRings();
+  if (mode === 'carry') {
+    G.me.pos.set(-17, -0.35, -3);
+    setCarry(true);
+    G.carryHits = 0; G.carryLeft = 120; G.carryDone = false;
+    [[-15, -1, -3, 4.5, 0.3], [-3, -1, -3, 5.5, 0.25], [6, -2.5, 3, 5, 0.3]].forEach(([x, y, z, r, s], i) => {
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), new THREE.MeshStandardMaterial({ color: 0xdd5533, roughness: 0.6 }));
+      scene.add(mesh); G.targets.push({ mesh, x, y, z, r, s, ph: i * 2, pos: new V3(x, y, z), flash: 0 });
+    });
+  }
+  closeMenu();
+}
+function buildRings() {
+  G.ringIdx = 0; G.ringStart = null;
+  [[-20, -1, -6], [-12, -1, -6], [-4, -1, -8], [4, -4, -6], [10, -9, -8], [20, -10, -2], [18, -6, 4], [10, -3, 8], [-2, -1, 8], [-14, -1, 1]].forEach(p => {
+    const mesh = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.09, 8, 28), new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.6 }));
+    mesh.position.set(...p); scene.add(mesh); G.rings.push({ mesh, pos: new V3(...p) });
+  });
+  markRings();
+}
+function markRings() {
+  G.rings.forEach((r, i) => {
+    r.mesh.material.color.setHex(i < G.ringIdx ? 0x47614f : i === G.ringIdx ? 0xe0a83c : 0xcfd6d4);
+    r.mesh.scale.setScalar(i === G.ringIdx ? 1.1 : 1);
+  });
+}
+function setCarry(on) {
+  if (on === G.carry) return;
+  G.carry = on;
+  if (on) {
+    if (G.me.held) dropHeld(G.me);
+    G.partner = newPlayer(0, 0xc47f2c, G.me.pos, false); G.partner.carried = true; G.partner.swimT = 1; G.players.push(G.partner);
+    G.heading = G.viewYaw; G.p2Yaw = 0; G.p2Pitch = G.viewPitch * 0.5;
+  } else if (G.partner) {
+    G.viewYaw = G.heading + G.p2Yaw; G.viewPitch = G.p2Pitch;
+    scene.remove(G.partner.mesh); G.players = G.players.filter(p => p !== G.partner); G.partner = null;
+  }
+}
+
+/* ---------- Collision ---------- */
+function collideSphere(p, r) {
+  for (const b of boxes) {
+    const cx = Math.max(b.min.x, Math.min(p.pos.x, b.max.x)), cy = Math.max(b.min.y, Math.min(p.pos.y, b.max.y)), cz = Math.max(b.min.z, Math.min(p.pos.z, b.max.z));
+    const dx = p.pos.x - cx, dy = p.pos.y - cy, dz = p.pos.z - cz, d2 = dx * dx + dy * dy + dz * dz;
+    if (d2 >= r * r) continue;
+    let n;
+    if (d2 > 1e-8) { const d = Math.sqrt(d2); n = new V3(dx / d, dy / d, dz / d); p.pos.addScaledVector(n, r - d); }
+    else { n = new V3(0, 1, 0); p.pos.y = b.max.y + r; }
+    const vn = p.vel.dot(n);
+    if (vn < 0) p.vel.addScaledVector(n, -vn * 1.05);
+  }
+  p.pos.x = Math.max(-PX - 1.5, Math.min(PX + 1.5, p.pos.x));
+  p.pos.z = Math.max(-PZ - 1.5, Math.min(PZ + 1.5, p.pos.z));
+}
+function pointBox(p) { for (const b of boxes) if (p.x > b.min.x && p.x < b.max.x && p.y > b.min.y && p.y < b.max.y && p.z > b.min.z && p.z < b.max.z) return b; return null; }
+function hitFace(b, prev) {
+  if (prev.x >= b.max.x) return '+x'; if (prev.x <= b.min.x) return '-x';
+  if (prev.y >= b.max.y) return '+y'; if (prev.y <= b.min.y) return '-y';
+  if (prev.z >= b.max.z) return '+z'; if (prev.z <= b.min.z) return '-z';
+  return '+y';
+}
+function rayBoxes(o, d, maxD) {
+  let best = maxD;
+  for (const b of boxes) {
+    let t0 = 0, t1 = best, ok = true;
+    for (const ax of ['x', 'y', 'z']) {
+      if (Math.abs(d[ax]) < 1e-6) { if (o[ax] < b.min[ax] || o[ax] > b.max[ax]) { ok = false; break; } continue; }
+      let a = (b.min[ax] - o[ax]) / d[ax], c = (b.max[ax] - o[ax]) / d[ax];
+      if (a > c) [a, c] = [c, a];
+      t0 = Math.max(t0, a); t1 = Math.min(t1, c);
+      if (t0 > t1) { ok = false; break; }
+    }
+    if (ok && t0 < best) best = t0;
+  }
+  return best;
+}
+
+/* ---------- Swim motor ---------- */
+const DOWN = new V3(0, -1, 0);
+function swim(p, wish, up, sprint, dt) {
+  const inWater = p.pos.y < 0.15;
+  const moving = wish.lengthSq() + Math.abs(up) > 0.01;
+  const canSprint = sprint && p.stamina > 0 && moving;
+  p.stamina = Math.max(0, Math.min(100, p.stamina + (canSprint ? -22 : 12) * dt));
+  let spd = TUNE.speed * (canSprint ? 1.8 : 1);
+  if ((G.carry && p === G.me) || p.carrying) spd *= 0.7;
+  spd *= 1 - p.slow;
+  if (inWater) {
+    const t = wish.clone().multiplyScalar(spd);
+    t.y += up * (canSprint ? 7.5 : 4.2);
+    const nearTop = p.pos.y > -0.9;
+    if (nearTop && t.y >= -0.05 && !(canSprint && up > 0)) t.y = (-0.35 - p.pos.y) * 3;  // 水面漂浮
+    t.add(currentAt(p.pos));
+    const blend = 1 - Math.exp(-(moving ? TUNE.accel : TUNE.coast) * dt);
+    p.vel.lerp(t, blend);
+    if (!p.isBot && (canSprint || up !== 0) && Math.random() < dt * 22 && p.pos.y < -0.5) spawnBubble(p.pos);
+  } else {
+    p.vel.y -= 9.8 * dt;
+    p.vel.x *= Math.exp(-0.3 * dt); p.vel.z *= Math.exp(-0.3 * dt);
+  }
+  p.pos.addScaledVector(p.vel, dt);
+  collideSphere(p, 0.5);
+  // 姿勢：有在游才趴平，否則直立踩水；直立時讓腿不會穿過池底
+  const rel = p.vel.clone().sub(inWater ? currentAt(p.pos) : new V3()).length();
+  p.swimming = moving || rel > 1.6;
+  p.swimT += ((p.swimming ? 1 : 0) - p.swimT) * (1 - Math.exp(-7 * dt));
+  if (p.swimming && Math.hypot(p.fwd.x, p.fwd.z) > 0.3) p.faceYaw = Math.atan2(p.fwd.x, p.fwd.z);
+  const legs = (1 - p.swimT) * 1.0;
+  if (inWater && legs > 0.05) {
+    const need = 0.5 + legs, d = rayBoxes(p.pos, DOWN, need + 0.1);
+    if (d < need) p.pos.y += (need - d) * Math.min(1, 6 * dt);
+  }
+  p.slow = Math.max(0, p.slow - 0.12 * dt);
+  p.stroke += p.vel.length() * dt * (canSprint ? 2.6 : 2.2);
+}
+function stepEnv(p, dt) {       // 所在水域的效果
+  const k = p.pos.y < WATER_Y ? volIndex(p.pos) : -1;
+  p.zone = '清水';
+  if (G.match && Math.hypot(p.pos.x - (p.team ? 22 : -22), p.pos.z) < BASE_R) {     // 己方基地
+    p.zone = '己方基地'; p.res = Math.min(100, p.res + 30 * dt);
+    if (G.auth) p.nausea = Math.max(0, p.nausea - 20 * dt);
+    return;
+  }
+  if (k < 0 || VOL.amt[k] < 8 || VOL.own[k] < 0) return;
+  if (VOL.own[k] === p.team) { p.zone = '己方雲團'; p.res = Math.min(100, p.res + TUNE.cloudRes * dt); }
+  else {
+    p.zone = '敵方雲團';
+    if (VOL.typ[k] === STICKY) p.slow = Math.min(0.5, p.slow + 0.5 * dt);
+    if (G.auth && !(G.match && (p.inv > 0 || G.match.ph !== 'play'))) {
+      p.nausea += 5 * dt;
+      if (p.nausea >= 100) hurt(p, 0, p.lastBy);
+    }
+  }
+}
+
+/* ---------- Firing ---------- */
+const rnd = () => Math.random() * 2 - 1;
+function fire(p, dir, dt, owner) {
+  if (p.stun > 0 || (G.match && G.match.ph !== 'play')) return;
+  const spec = SPEC[p.type], origin = buttOf(p);
+  if (p.type === SOLID) {
+    if (p.cool > 0 || p.res < spec.cost) return;
+    p.cool = 0.6; p.res -= spec.cost; p.lastFire = G.time;
+    if (G.auth) spawnSolid(origin, dir, p, owner); else if (p === G.me) netAct(3, dir);
+    if (p.carried) countShot(owner);
+    if (G.recoil && !p.carried) p.vel.addScaledVector(dir, -2.4);
+    return;
+  }
+  p.sprayAcc += dt * 16;
+  while (p.sprayAcc >= 1) {
+    p.sprayAcc -= 1;
+    if (p.res < spec.cost * 0.625) { p.lastBlob = null; break; }
+    p.res -= spec.cost * 0.625; p.lastFire = G.time;
+    const jitter = new V3(rnd(), rnd(), rnd()).multiplyScalar(p.type === LIQUID ? 0.012 : 0.03);
+    const v = dir.clone().add(jitter).normalize().multiplyScalar(spec.speed * (0.96 + Math.random() * 0.08));
+    const blob = { pos: origin.clone(), prev: origin.clone(), vel: v, type: p.type, team: p.team, owner, src: p, life: p.type === STICKY ? 8 : 4, mass: spec.mass * 0.625, link: p.lastBlob, tint: 0.55 + Math.random() * 0.7, chunk: Math.random() < 0.18 };
+    if (G.blobs.length < 900) { G.blobs.push(blob); p.lastBlob = blob; }
+    countShot(owner);
+    if (G.recoil && !p.carried) p.vel.addScaledVector(dir, -0.3);
+  }
+}
+const statKey = () => G.carry ? 'carry' : 'solo';
+function countShot(owner) { if (owner === 'human') LOG.shots[statKey()]++; }
+function countHit(owner) { if (owner === 'human' && !G.match) { LOG.hits[statKey()]++; G.hitFx = 0.18; splat(0.9); } }
+const solidGeo = (() => {       // 一節一節、凹凸不平的條狀物
+  const g = new THREE.SphereGeometry(0.24, 22, 16), a = g.attributes.position, col = new Float32Array(a.count * 3);
+  for (let i = 0; i < a.count; i++) {
+    const x = a.getX(i), y = a.getY(i), z = a.getZ(i), t = z / 0.24;
+    const bump = 0.07 * Math.sin(x * 55 + z * 37) + 0.05 * Math.sin(y * 71 - z * 23);
+    const sc = (1 + 0.2 * Math.sin(t * 7.5) + bump) * (0.78 + 0.22 * (1 - Math.abs(t)));
+    a.setXYZ(i, x * sc + 0.05 * Math.sin(t * 2.6), y * sc + 0.03 * Math.sin(t * 3.4), z);
+    const s = 0.6 + 0.4 * Math.abs(Math.sin(x * 40 + y * 33 + z * 29));
+    col.set([0.4 * s, 0.24 * s, 0.09 * s], i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return g;
+})();
+const kernelGeo = new THREE.SphereGeometry(0.035, 6, 5);
+const kernelMat = new THREE.MeshStandardMaterial({ color: 0xd8b52c, roughness: 0.5 });
+const solidMat = new THREE.MeshStandardMaterial({ vertexColors: true, emissive: 0x1c1005, roughness: 0.3 });   // 溼亮
+let solidSeq = 0;
+function sizeSolid(s) {
+  const l = Math.max(0.22, s.mass / SPEC[SOLID].mass);
+  s.mesh.scale.set(1.5 * l, 1.2 * l, 2.5 * l);
+}
+function makeSolid(pos, vel, team, owner, rest) {
+  const mesh = new THREE.Mesh(solidGeo, solidMat); mesh.position.copy(pos); scene.add(mesh);
+  [[0.1, 0.14, 0.1], [-0.13, 0.08, -0.08], [0.05, -0.14, -0.14]].forEach(k => { const c = new THREE.Mesh(kernelGeo, kernelMat); c.position.set(...k); mesh.add(c); });
+  const s = { id: ++solidSeq, pos: pos.clone(), vel, team, owner, src: null, mesh, rest: !!rest, thrown: false, held: null, mass: SPEC[SOLID].mass, netT: null };
+  sizeSolid(s); G.solids.push(s);
+  return s;
+}
+function spawnSolid(origin, dir, p, owner) {
+  if (G.solids.length >= (G.match ? 40 : 64)) { const old = G.solids.findIndex(s => s.rest); if (old >= 0) { depositAt(G.solids[old].pos, G.solids[old].mass, G.solids[old].team, SOLID); scene.remove(G.solids[old].mesh); G.solids.splice(old, 1); } else return; }
+  // 排泄只是落在身後；被扛者的屁股砲維持高速
+  makeSolid(origin, dir.clone().multiplyScalar(p.carried ? SPEC[SOLID].speed : EXCRETE_SPEED), p.team, owner, false).src = p;
+}
+function nearestSolid(p, r) {
+  let best = null, bd = r * r;
+  for (const s of G.solids) {
+    if (s.held || s.thrown || s.vel.lengthSq() > 36) continue;
+    const d = s.pos.distanceToSquared(p.pos);
+    if (d < bd) { bd = d; best = s; }
+  }
+  return best;
+}
+function pickUp(p, s) {       // 撿起就算自己的，包含敵方的固體
+  s.held = p; s.rest = false; s.vel.set(0, 0, 0); s.team = p.team; p.held = s; p.heldT = 0;
+}
+function dropHeld(p) {
+  const s = p.held; if (!s) return;
+  p.held = null; s.held = null; s.vel.copy(p.vel).multiplyScalar(0.5); s.pos.copy(handOf(p));
+}
+function throwHeld(p, dir, owner) {
+  const s = p.held; if (!s || (G.match && G.match.ph !== 'play')) return;
+  if (!G.auth) { netAct(2, dir); p.held = null; G.heldIgnore = G.time + 0.6; p.throwFx = 1; p.lastFire = G.time; splat(0.7); return; }
+  p.held = null; s.held = null; s.thrown = true; s.owner = owner; s.src = p; s.pos.copy(handOf(p));
+  s.vel.copy(dir).multiplyScalar(THROW.speed);
+  p.cool = 0.4; p.lastFire = G.time; p.throwFx = 1;
+  p.fwd.copy(dir); if (Math.hypot(dir.x, dir.z) > 0.3) p.faceYaw = Math.atan2(dir.x, dir.z);
+  countShot(owner); splat(0.7);
+}
+function hitPlayers(o, team, r) {
+  for (const p of G.players) {
+    if (p.team === team || p.carried || p.dead > 0) continue;
+    if (p.pos.distanceToSquared(o) < r * r) return p;
+  }
+  return null;
+}
+function hurt(p, amount, src) {
+  if (G.match) {
+    if (!G.auth || p.dead > 0 || p.inv > 0 || G.match.ph !== 'play') return;
+    p.nausea += amount;
+    if (src && src !== p) { p.lastBy = src; p.lastByT = G.time; if (amount > 0) src.dealt++; }
+    if (amount > 0) p.hitN++;
+    if (p.nausea >= 100) killPlayer(p);
+    return;
+  }
+  p.nausea += amount;
+  if (p === G.me) G.meTint = Math.min(1, G.meTint + (amount ? 0.2 : 0));
+  if (p.nausea >= 100) { p.nausea = 0; p.stun = 3; if (p === G.me) toast('噁心到暈眩了'); }
+}
+function addDrops(pos, n, color, speed) {
+  for (let i = 0; i < n && G.drops.length < 220; i++) G.drops.push({ pos: pos.clone(), vel: new V3(rnd() * speed, Math.random() * speed * 1.2, rnd() * speed), life: 0.35 + Math.random() * 0.3, color });
+}
+function stepBlobs(dt) {
+  const prev = new V3();
+  for (let i = G.blobs.length - 1; i >= 0; i--) {
+    const b = G.blobs[i], spec = SPEC[b.type], under = b.pos.y < WATER_Y;
+    b.prev.copy(b.pos); prev.copy(b.pos);
+    if (under) {
+      b.vel.multiplyScalar(Math.exp(-spec.waterDrag * dt));
+      const q = Math.min(b.mass, spec.mass * 0.625 * spec.rate * dt);   // 邊走邊散進水裡
+      if (G.auth) depositAt(b.pos, q, b.team, b.type); b.mass -= q;
+    } else { b.vel.multiplyScalar(Math.exp(-spec.airDrag * dt)); b.vel.y -= 9.8 * dt; }
+    b.pos.addScaledVector(b.vel, dt);
+    b.life -= dt;
+    if (!under && b.pos.y < WATER_Y) addDrops(b.pos, 3, spec.color, 2);   // 入水水花
+    let dead = b.life <= 0 || b.mass <= 0.5 || (under && b.vel.lengthSq() < 0.4);
+    const target = hitPlayers(b.pos, b.team, 0.75);
+    if (target) {
+      if (G.auth) {
+        hurt(target, spec.nausea * 0.625, b.src);
+        if (b.type === STICKY) target.slow = Math.min(0.5, target.slow + 0.04);
+        countHit(b.owner);
+      }
+      dead = true; addDrops(b.pos, 5, spec.color, 2.4);
+    } else if (hitTargets(b.pos, b.owner)) { dead = true; addDrops(b.pos, 3, spec.color, 2); }
+    else {
+      const box = pointBox(b.pos);
+      if (box) {
+        const c = box.charts[hitFace(box, prev)];
+        if (prev.y >= WATER_Y) { if (c) chartPaint(c, prev, b.mass * 0.25, b.team, b.type); addDrops(prev, 3, spec.color, 2.2); }
+        dead = true;
+      }
+    }
+    if (dead) {
+      if (G.auth && b.mass > 0 && b.pos.y < WATER_Y) depositAt(prev, b.mass, b.team, b.type);
+      b.dead = true; G.blobs.splice(i, 1);
+    }
+  }
+  for (let i = G.drops.length - 1; i >= 0; i--) {
+    const d = G.drops[i];
+    d.vel.y -= (d.pos.y < WATER_Y ? 2 : 9.8) * dt; d.pos.addScaledVector(d.vel, dt); d.life -= dt;
+    if (d.life <= 0) G.drops.splice(i, 1);
+  }
+}
+function hitTargets(pos, owner) {
+  if (owner !== 'human') return null;
+  for (const t of G.targets) if (t.pos.distanceToSquared(pos) < 4) {
+    if (t.flash <= 0) { t.flash = 0.8; G.carryHits++; toast('命中移動靶 ' + G.carryHits); }
+    countHit(owner); return t;
+  }
+  return null;
+}
+function removeSolid(i) { scene.remove(G.solids[i].mesh); G.solids.splice(i, 1); }
+function shedThrown(s, dt) {       // 投擲路徑上不斷釋放質量，越飛越小，用完就消失
+  if (s.pos.y < WATER_Y) {
+    s.vel.multiplyScalar(Math.exp(-THROW.drag * dt));
+    const q = Math.min(s.mass, THROW.rate * dt);
+    depositAt(s.pos, q, s.team, SOLID); s.mass -= q;
+    if (Math.random() < dt * 40) addDrops(s.pos, 1, SPEC[SOLID].color, 0.5);
+  } else {                         // 空中掉落的碎屑落到正下方的水裡
+    s.vel.y -= 9.8 * dt;
+    const q = Math.min(s.mass, THROW.rate * THROW.airShare * dt);
+    depositAt(new V3(s.pos.x, -0.25, s.pos.z), q, s.team, SOLID); s.mass -= q;
+    if (Math.random() < dt * 30) addDrops(s.pos, 1, SPEC[SOLID].color, 0.8);
+  }
+  sizeSolid(s);
+  s.mesh.rotation.x += dt * 9; s.mesh.rotation.y += dt * 5;
+}
+function stepSolids(dt) {
+  const prev = new V3();
+  for (let i = G.solids.length - 1; i >= 0; i--) {
+    const s = G.solids[i];
+    if (s.rest) continue;
+    if (s.held) { s.pos.copy(handOf(s.held)); s.mesh.position.copy(s.pos); continue; }
+    prev.copy(s.pos);
+    if (s.thrown) {
+      shedThrown(s, dt);
+      if (s.mass <= 0.5) { addDrops(s.pos, 4, SPEC[SOLID].color, 1); removeSolid(i); continue; }
+    } else if (s.pos.y < WATER_Y) {
+      s.vel.x *= Math.exp(-3 * dt); s.vel.z *= Math.exp(-3 * dt); s.vel.y += (-1.4 - s.vel.y) * (1 - Math.exp(-3 * dt));
+      const q = Math.min(s.mass * 0.5, 45 * dt); depositAt(s.pos, q, s.team, SOLID); s.mass -= q;   // 下沉時留下痕跡
+      sizeSolid(s);
+    } else s.vel.y -= 9.8 * dt;
+    s.pos.addScaledVector(s.vel, dt);
+    s.mesh.position.copy(s.pos);
+    if (s.thrown || s.vel.lengthSq() > 36) {      // 只有投擲或高速的固體會傷人
+      const tgt = hitPlayers(s.pos, s.team, 0.85);
+      if (tgt) {
+        hurt(tgt, s.thrown ? THROW.nauseaMin + THROW.nauseaMax * s.mass / SPEC[SOLID].mass : SPEC[SOLID].nausea, s.src);
+        countHit(s.owner); addDrops(s.pos, 6, SPEC[SOLID].color, 2);
+        if (s.pos.y < WATER_Y) depositAt(s.pos, s.mass, s.team, SOLID);
+        removeSolid(i); continue;
+      }
+      if (hitTargets(s.pos, s.owner)) { if (s.pos.y < WATER_Y) depositAt(s.pos, s.mass, s.team, SOLID); removeSolid(i); continue; }
+    }
+    const box = pointBox(s.pos);
+    if (box) {
+      const f = hitFace(box, prev), c = box.charts[f];
+      s.pos.copy(prev);
+      if (s.thrown && s.pos.y >= WATER_Y && c) chartPaint(c, s.pos, 200, s.team, SOLID);
+      s.thrown = false;                           // 撞到東西就停止飛行，可以再被撿起來
+      if (FACE[f].n[1] > 0.5) { s.rest = true; s.vel.set(0, 0, 0); s.mesh.position.copy(s.pos); if (s.pos.y >= WATER_Y && c) chartPaint(c, s.pos, 200, s.team, SOLID); }
+      else { const n = new V3(...FACE[f].n); s.vel.addScaledVector(n, -1.2 * s.vel.dot(n)); }
+    }
+    if (s.pos.y > 25 || s.pos.y < -30 || Math.abs(s.pos.x) > 60 || Math.abs(s.pos.z) > 60) removeSolid(i);
+  }
+}
+function seepSolids() {       // 固體靜置時滲出，總量有限，滲完就消失
+  for (let i = G.solids.length - 1; i >= 0; i--) {
+    const s = G.solids[i]; if (!s.rest) continue;
+    const q = Math.min(SEEP, s.mass); s.mass -= q;
+    if (s.pos.y < WATER_Y) depositAt(s.pos.clone().add(new V3(0, 0.3, 0)), q, s.team, SOLID);
+    sizeSolid(s);
+    if (s.mass <= 0) removeSolid(i);
+  }
+}
+
+/* ---------- Player input ---------- */
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const camYaw = () => G.carry ? G.heading + G.p2Yaw : G.viewYaw;
+const camPitch = () => G.carry ? G.p2Pitch : G.viewPitch;
+function dirOf(yaw, pitch) { const cp = Math.cos(pitch); return new V3(Math.sin(yaw) * cp, Math.sin(pitch), Math.cos(yaw) * cp); }
+function padState() {
+  try {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const g of pads) if (g && g.connected) {
+      const dz = v => Math.abs(v) < 0.14 ? 0 : v;
+      return { x: dz(g.axes[2] || 0), y: dz(g.axes[3] || 0), fire: (g.buttons[7] && g.buttons[7].value > 0.2) || (g.buttons[5] && g.buttons[5].pressed) };
+    }
+  } catch (e) { /* 環境不允許手把時改用鍵盤 */ }
+  return { x: 0, y: 0, fire: false };
+}
+function stepMe(dt) {
+  const me = G.me, free = me.stun <= 0, wish = new V3();
+  if (me.dead > 0) { G.aimDir = null; G.wasFiring = false; return; }
+  if (me.carriedBy) {            // 被扛：只負責瞄準與噴射
+    const o = G.camPos.clone(), cd = camera.getWorldDirection(new V3());
+    const aim = o.addScaledVector(cd, Math.max(5, rayBoxes(o, cd, 40))).sub(buttOf(me)).normalize();
+    me.fwd.copy(aim).negate();
+    const shoot = mouseDown || keys.has('KeyF');
+    if (!shoot) G.fireLock = false;
+    if (shoot && !G.fireLock) {
+      if (!G.wasFiring && me.type !== SOLID && me.res > 2 && G.match.ph === 'play') fart(1);
+      G.wasFiring = true; fire(me, aim, dt, 'human');
+    } else { me.sprayAcc = 0; me.lastBlob = null; G.wasFiring = false; }
+    G.aimDir = aim; G.shooter = me;
+    return;
+  }
+  if (G.carry) {
+    const turn = free ? (keys.has('KeyA') ? 1 : 0) - (keys.has('KeyD') ? 1 : 0) : 0;
+    G.heading += turn * 1.5 * dt;
+    if (free) { const fl = dirOf(G.heading, 0); if (keys.has('KeyW')) wish.add(fl); if (keys.has('KeyS')) wish.sub(fl); }
+  } else if (free) {
+    const f = dirOf(G.viewYaw, G.viewPitch), flat = dirOf(G.viewYaw, 0), right = new V3(-flat.z, 0, flat.x);
+    const forwardVec = Math.abs(G.viewPitch) < 0.22 ? flat : f;     // 鏡頭略微俯仰時仍保持水平游動
+    if (keys.has('KeyW')) wish.add(forwardVec);
+    if (keys.has('KeyS')) wish.sub(forwardVec);
+    if (keys.has('KeyD')) wish.add(right);
+    if (keys.has('KeyA')) wish.sub(right);
+    if (wish.lengthSq() > 1) wish.normalize();
+  }
+  const up = free ? (keys.has('Space') ? 1 : 0) - (keys.has('KeyC') ? 1 : 0) : 0;
+  swim(me, wish, up, free && (keys.has('ShiftLeft') || keys.has('ShiftRight')), dt);
+
+  let shooter, firing, dir;
+  if (G.carry) me.faceYaw = G.heading;
+  if (G.carry) {                 // 被扛者：準星瞄準，屁股朝向準星，限制在前方錐形內
+    const pad = padState();
+    const dy = (keys.has('ArrowLeft') ? 1 : 0) - (keys.has('ArrowRight') ? 1 : 0) - pad.x;
+    const dp = (keys.has('ArrowUp') ? 1 : 0) - (keys.has('ArrowDown') ? 1 : 0) - pad.y;
+    G.p2Yaw = clamp(G.p2Yaw + dy * 1.6 * dt, -1.05, 1.05);
+    G.p2Pitch = clamp(G.p2Pitch + dp * 1.2 * dt, -0.7, 0.7);
+    shooter = G.partner;
+    shooter.pos.copy(me.pos).add(new V3(0, 0.75 + (1 - me.swimT) * 0.7, 0));
+    const o = G.camPos.clone(), cd = dirOf(camYaw(), camPitch());
+    const aim = o.addScaledVector(cd, Math.max(5, rayBoxes(o, cd, 40)));
+    dir = aim.sub(buttOf(shooter)).normalize();
+    shooter.fwd.copy(dir).negate();
+    me.fwd.lerp(dirOf(G.heading, 0), 1 - Math.exp(-6 * dt)).normalize();
+    shooter.res = Math.min(100, shooter.res + (6 + (me.zone === '己方雲團' ? TUNE.cloudRes : 0)) * dt);
+    firing = mouseDown || keys.has('Enter') || pad.fire;
+  } else {                       // 單人：身體方向由游動決定，噴射固定朝身體後方
+    shooter = me;
+    if (me.held && !me.swimming) me.faceYaw = G.viewYaw;     // 拿著固體站著時面向準星
+    if (me.swimming) { if (me.vel.lengthSq() > 0.4) me.fwd.lerp(me.vel.clone().normalize(), 1 - Math.exp(-TUNE.turn * dt)).normalize(); }
+    else me.fwd.lerp(dirOf(me.faceYaw, 0), 1 - Math.exp(-8 * dt)).normalize();
+    firing = (mouseDown || keys.has('KeyF')) && !me.carrying;
+    if (me.held) {
+      const o = G.camPos.clone(), cd = camera.getWorldDirection(new V3());
+      dir = o.addScaledVector(cd, Math.max(5, rayBoxes(o, cd, 40))).sub(handOf(me)).normalize();
+    } else dir = me.fwd.clone().negate();
+  }
+  if (!firing) G.fireLock = false;
+  if (!G.carry && me.held) {
+    if (firing && !G.fireLock) { throwHeld(me, dir, 'human'); G.fireLock = true; }
+  } else if (firing && !G.fireLock) {
+    if (!G.wasFiring && shooter.type !== SOLID && shooter.res > 2 && !(G.match && G.match.ph !== 'play')) fart(1);
+    G.wasFiring = true;
+    fire(shooter, dir, dt, 'human');
+  } else { shooter.sprayAcc = 0; shooter.lastBlob = null; G.wasFiring = false; }
+  G.aimDir = me.carrying ? null : dir; G.shooter = shooter;
+}
+
+/* ---------- Bots ---------- */
+function stepBot(p, dt) {
+  if (p.carriedBy) {             // 被扛的機器人：朝最近的敵人噴
+    let foe = null, best = 14;
+    for (const q of G.players) if (q.team !== p.team && q.dead <= 0) { const d = q.pos.distanceTo(p.pos); if (d < best) { best = d; foe = q; } }
+    if (foe && p.res > 5) {
+      const dir = foe.pos.clone().sub(buttOf(p)).normalize();
+      p.fwd.copy(dir).negate();
+      if (p.type === SOLID) p.type = LIQUID;
+      fire(p, dir, dt, 'bot');
+    } else p.lastBlob = null;
+    return;
+  }
+  p.wayT -= dt;
+  if (G.match) {                 // 對局：快撐不住就回基地，否則追附近的敵人
+    let near = null, nd = 18;
+    for (const q of G.players) if (q.team !== p.team && q.dead <= 0) { const d = q.pos.distanceTo(p.pos); if (d < nd) { nd = d; near = q; } }
+    if (p.nausea > 70 || p.res < 12) { p.way.copy(spawnOf(p)); p.wayT = 1; }
+    else if (near && nd > 5) { p.way.copy(near.pos); p.wayT = 1; }
+  }
+  if (p.wayT <= 0 || p.pos.distanceTo(p.way) < 2) {
+    p.wayT = 3 + Math.random() * 5;
+    const deep = p.layerY < -2;
+    p.way.set(deep ? 2 + Math.random() * 21 : -22 + Math.random() * 44, p.layerY, -10 + Math.random() * 20);
+    if (pointBox(p.way)) p.way.y = -0.35;
+  }
+  const wish = new V3();
+  if (p.stun <= 0) { wish.subVectors(p.way, p.pos); wish.y *= 0.6; if (wish.lengthSq() > 1) wish.normalize(); wish.multiplyScalar(0.8); }
+  swim(p, wish, 0, false, dt);
+  let foe = null, best = 11;
+  for (const q of G.players) if (q.team !== p.team && !q.carried && q.dead <= 0) { const d = q.pos.distanceTo(p.pos); if (d < best) { best = d; foe = q; } }
+  p.burst -= dt;
+  if (p.burst < -2.2) p.burst = 1.6 + Math.random();
+  const moving = p.vel.lengthSq() > 0.5 ? p.vel.clone().normalize() : p.fwd;
+  if (p.type === SOLID) {        // 固體機器人：排出、撿起，看到敵人才丟
+    if (p.held) {
+      p.heldT += dt;
+      if (foe || p.heldT > 6) {
+        const aim = foe ? foe.pos.clone().addScaledVector(foe.vel, 0.3).sub(handOf(p)).normalize().add(new V3(rnd(), rnd(), rnd()).multiplyScalar(0.06)).normalize() : moving.clone();
+        throwHeld(p, aim, 'bot');
+      }
+    } else if (p.stun <= 0 && p.cool <= 0) {
+      const near = nearestSolid(p, REACH);
+      if (near) pickUp(p, near);
+      else if (p.burst > 0 && p.res > 18) fire(p, moving.clone().negate(), dt, 'bot');
+    }
+    p.fwd.lerp(moving, 1 - Math.exp(-4 * dt)).normalize();
+    return;
+  }
+  if (p.burst > 0 && p.res > 15) {
+    let dir;
+    if (foe) dir = foe.pos.clone().sub(buttOf(p)).normalize().add(new V3(rnd(), rnd(), rnd()).multiplyScalar(0.05)).normalize();
+    else dir = moving.clone().negate();
+    p.fwd.lerp(dir.clone().negate(), 1 - Math.exp(-8 * dt)).normalize();
+    fire(p, dir, dt, 'bot');
+  } else { p.lastBlob = null; p.fwd.lerp(moving, 1 - Math.exp(-4 * dt)).normalize(); }
+}
+
+/* ---------- Fixed step ---------- */
+function stepBubbles(dt) {
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i]; b.p.y += 1.6 * dt; b.p.x += Math.sin(b.life * 9) * dt * 0.3; b.life -= dt;
+    if (b.life <= 0 || b.p.y > WATER_Y) bubbles.splice(i, 1);
+  }
+}
+function step(dt) {
+  if (G.match && !G.auth) { stepClient(dt); return; }
+  G.time += dt;
+  if (G.net) netHostRead();
+  for (const p of G.players) {
+    if (p.dead > 0) { p.dead -= dt; if (p.dead <= 0) respawn(p); continue; }
+    if (p.inv > 0) p.inv -= dt;
+    if (p.stun > 0) { p.stun -= dt; if (p.held) dropHeld(p); }
+    if (p.cool > 0) p.cool -= dt;
+    if (!p.carried) p.res = Math.min(100, p.res + 6 * dt);
+    p.nausea = Math.max(0, p.nausea - 1.2 * dt);
+    if (!p.carried) stepEnv(p, dt);
+  }
+  stepMe(dt);
+  for (const p of G.players) {
+    if (p.dead > 0) continue;
+    if (p.isBot) stepBot(p, dt);
+    else if (p.peer) stepNetPlayer(p, dt);
+  }
+  stepRiders();
+  stepBlobs(dt); stepSolids(dt);
+  stepBubbles(dt);
+  G.diffuseAcc += dt;
+  if (G.diffuseAcc >= DIFFUSE_DT) { G.diffuseAcc -= DIFFUSE_DT; seepSolids(); diffuse(); }
+  if (G.mode === 'rings') stepRings();
+  if (G.mode === 'carry') stepCarryRange(dt);
+  if (G.match) stepMatch(dt);
+  stepFeedback(dt);
+}
+function stepFeedback(dt) {
+  const me = G.me;
+  if (G.match) {
+    if (me.hitN > G.seenHit) { G.meTint = Math.min(1, G.meTint + 0.25); screenSplat(2 + Math.random() * 3); splat(0.8); }
+    if (me.dealt > G.seenDealt) { G.hitFx = 0.18; splat(0.9); }
+    G.seenHit = me.hitN; G.seenDealt = me.dealt;
+    if (me.zone === '敵方雲團' && Math.random() < dt * 0.9) screenSplat(1);
+  }
+  G.hitFx = Math.max(0, G.hitFx - dt);
+  G.meTint = Math.max(0, G.meTint - dt * 0.5);
+}
+function stepRings() {
+  const r = G.rings[G.ringIdx]; if (!r) return;
+  if (G.me.pos.distanceTo(r.pos) < 1.7) {
+    if (G.ringStart === null) G.ringStart = G.time;
+    G.ringIdx++; markRings(); splat(1.6);
+    if (G.ringIdx >= G.rings.length) {
+      const sec = +(G.time - G.ringStart).toFixed(1);
+      LOG.rings.push({ attempt: LOG.rings.length + 1, sec, tune: { ...TUNE } }); toast('完成 ' + sec + ' 秒。按 Esc 回選單可重新測試');
+    }
+  }
+}
+function stepCarryRange(dt) {
+  G.targets.forEach(t => {
+    t.ph += dt * t.s;
+    t.pos.set(t.x + Math.cos(t.ph) * t.r, t.y + Math.sin(t.ph * 1.7) * 0.4, t.z + Math.sin(t.ph) * t.r * 0.5);
+    t.mesh.position.copy(t.pos);
+    t.flash = Math.max(0, t.flash - dt);
+    t.mesh.material.color.setHex(t.flash > 0 ? 0xf2d060 : 0xdd5533);
+  });
+  if (G.carryDone) return;
+  G.carryLeft -= dt;
+  if (G.carryHits >= 3 || G.carryLeft <= 0) {
+    G.carryDone = true;
+    const passed = G.carryHits >= 3;
+    LOG.carry.push({ passed, hits: G.carryHits, sec: +(120 - Math.max(0, G.carryLeft)).toFixed(1) });
+    toast(passed ? '通過：' + (120 - G.carryLeft).toFixed(0) + ' 秒打中 3 次' : '時間到，打中 ' + G.carryHits + ' 次');
+  }
+}
+
+/* ---------- Match rules ---------- */
+const CARRY_REACH = 3, BASE_R = 7.5, MATCH_COUNT = 5, MATCH_DUR = 180, RESPAWN = 5, SPAWN_INV = 2, KILL_MASS = 255 * 14;
+const SUITS = [[0x9a5b1d, 0xb87a2e, 0x7d4a18], [0x5f7d22, 0x7c9a2e, 0x48601a]];
+const TEAM_NAME = ['棕隊', '綠隊'];
+const spawnOf = p => new V3(p.team ? 22 : -22, -0.35, [-6, 0, 6][p.slot]);
+const bases = [0, 1].map(t => {
+  const h = t ? 13 : 3;
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(BASE_R, BASE_R, h, 28, 1, true), new THREE.MeshBasicMaterial({ color: t ? 0x8fbf3a : 0xd08a30, transparent: true, opacity: 0.1, side: THREE.DoubleSide, depthWrite: false }));
+  m.position.set(t ? 22 : -22, 1 - h / 2, 0); m.visible = false; scene.add(m);
+  return m;
+});
+function nameTag(text, team) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+  const g = c.getContext('2d'); g.font = 'bold 36px "Noto Sans TC", sans-serif'; g.textAlign = 'center'; g.lineWidth = 6;
+  g.strokeStyle = '#000'; g.strokeText(text, 128, 44); g.fillStyle = team ? '#c6e06a' : '#f0b45a'; g.fillText(text, 128, 44);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+  s.scale.set(2.2, 0.55, 1); scene.add(s);
+  return s;
+}
+const SEATS = [0, 2, 1, 3, 4, 5];   // 2 人時同隊才能互扛；4 人 2 對 2、6 人 3 對 3
+function buildRoster(peers, names) {
+  const out = [];
+  for (let i = 0; i < 6; i++) out.push({ n: '機器人' + (i + 1), peer: null });
+  peers.forEach((q, i) => { if (q && i < 6) out[SEATS[i]] = { n: names[i] || '泳者', peer: q }; });
+  return out;
+}
+function startMatch(roster, myIdx, auth) {
+  clearWorld(); G.mode = 'match'; POL.stopScale = 1;
+  G.auth = auth;
+  G.match = { ph: 'count', t: MATCH_COUNT, kills: [0, 0], ev: [], evId: 0, seen: 0, shownEnd: false };
+  bases.forEach(b => { b.visible = true; });
+  roster.forEach((r, i) => {
+    const team = i % 2, slot = i >> 1, isBot = !r.peer;
+    const p = newPlayer(team, SUITS[team][slot], new V3(team ? 22 : -22, -0.35, [-6, 0, 6][slot]), auth && isBot && i !== myIdx);
+    p.idx = i; p.slot = slot; p.name = String(r.n).slice(0, 12); p.peer = i === myIdx ? null : r.peer;
+    p.fwd.set(team ? -1 : 1, 0, 0); p.faceYaw = team ? -Math.PI / 2 : Math.PI / 2;
+    p.netT = p.pos.clone(); p.netF = p.fwd.clone();
+    if (auth && isBot) {
+      p.type = [LIQUID, SOLID, STICKY][i % 3];
+      p.layerY = slot === 0 ? -0.35 : slot === 1 ? -6 : -3;
+    }
+    if (i !== myIdx) p.tag = nameTag(p.name, team);
+    G.players.push(p);
+  });
+  G.me = G.players[myIdx];
+  const t = G.me.team;
+  G.viewYaw = t ? -Math.PI / 2 : Math.PI / 2; G.viewPitch = -0.12;
+  G.camPos.copy(G.me.pos).add(new V3(t ? 6 : -6, 1.3, 0));
+  G.seenHit = 0; G.seenDealt = 0;
+  if (auth) {
+    [[-21, -1.7, -1.2], [-20, -1.7, 3], [-18, -1.7, -7]].forEach(q => { makeSolid(new V3(...q), new V3(), 0, 'seed', true); });
+    [[12, -11.7, 8], [20, -11.7, -8], [3, -11.7, 5], [21, -11.7, 1]].forEach(q => { makeSolid(new V3(...q), new V3(), 1, 'seed', true); });
+  }
+  closeMenu();
+}
+const nearestMate = (p, r) => {
+  let best = null, bd = r;
+  for (const q of G.players) {
+    if (q === p || q.team !== p.team || q.dead > 0 || q.carriedBy || q.carrying) continue;
+    const d = q.pos.distanceTo(p.pos);
+    if (d < bd) { bd = d; best = q; }
+  }
+  return best;
+};
+function releaseCarry(p) {       // p 可以是扛人者或被扛者
+  const carrier = p.carrying ? p : p.carriedBy, rider = p.carrying || (p.carriedBy ? p : null);
+  if (!carrier || !rider) return;
+  carrier.carrying = null; rider.carriedBy = null; rider.vel.copy(carrier.vel);
+}
+function toggleCarry(p) {
+  if (p.carrying || p.carriedBy) { releaseCarry(p); return; }
+  if (p.dead > 0 || G.match.ph === 'end') return;
+  const q = nearestMate(p, CARRY_REACH); if (!q) return;
+  if (p.held) dropHeld(p);
+  if (q.held) dropHeld(q);
+  p.carrying = q; q.carriedBy = p; q.swimT = 1; q.lastBlob = null;
+}
+function stepRiders() {          // 被扛者固定在扛人者肩上
+  for (const p of G.players) {
+    const c = p.carriedBy; if (!c) continue;
+    p.pos.copy(c.pos).add(new V3(0, 0.75 + (1 - c.swimT) * 0.7, 0));
+    p.vel.copy(c.vel); p.swimT = 1;
+  }
+}
+function killPlayer(v) {
+  releaseCarry(v);
+  const m = G.match, killer = v.lastBy && G.time - v.lastByT < 10 && v.lastBy !== v ? v.lastBy : null;
+  const kt = killer ? killer.team : 1 - v.team;
+  v.dead = RESPAWN; v.deaths++; v.nausea = 0; v.lastBy = null;
+  if (killer) killer.kills++;
+  m.kills[kt]++;
+  if (v.held) dropHeld(v);
+  if (v.pos.y < WATER_Y) depositAt(v.pos, KILL_MASS, kt, LIQUID);   // 爆出一團對方的雲團
+  m.ev.push([++m.evId, killer ? killer.idx : -1, v.idx]);
+  if (m.ev.length > 8) m.ev.shift();
+}
+function respawn(p) {
+  p.dead = 0; p.pos.copy(spawnOf(p)); p.vel.set(0, 0, 0); p.nausea = 0; p.res = 100; p.stamina = 100; p.slow = 0;
+  p.inv = SPAWN_INV; p.rs++; p.swimT = 0; p.lastBlob = null;
+  if (p === G.me) toast('回城了');
+}
+function handleKills() {
+  const m = G.match;
+  for (const e of m.ev) {
+    if (e[0] <= m.seen) continue;
+    m.seen = e[0];
+    const victim = G.players[e[2]], killer = G.players[e[1]];
+    if (!victim) continue;
+    addDrops(victim.pos, 40, 0x7f8a22, 3.2);                       // 嘔吐
+    feed(killer ? killer.name + ' 噁死了 ' + victim.name : victim.name + ' 被雲團噁死了');
+    if (victim === G.me) { screenSplat(10); fart(0.55); }
+    else if (killer === G.me) { toast('你噁死了 ' + victim.name); fart(0.8); }
+  }
+}
+function feed(t) {
+  const d = document.createElement('div'); d.textContent = t; $('feed').append(d);
+  while ($('feed').children.length > 5) $('feed').firstChild.remove();
+  setTimeout(() => d.remove(), 6000);
+}
+function stepMatch(dt) {
+  const m = G.match;
+  if (m.ph === 'count') { m.t -= dt; if (m.t <= 0) { m.ph = 'play'; m.t = MATCH_DUR; toast('開始！污染水體，噁死對手'); } }
+  else if (m.ph === 'play') { m.t -= dt; if (m.t <= 0) { m.t = 0; m.ph = 'end'; } }
+  handleKills();
+  if (m.ph === 'end' && !m.shownEnd) showResult();
+}
+function scoreTable() {
+  const tb = document.createElement('table');
+  const head = tb.insertRow(); ['玩家', '擊殺', '死亡'].forEach(t => { head.insertCell().textContent = t; });
+  [0, 1].forEach(t => G.players.filter(p => p.team === t).sort((a, b) => b.kills - a.kills).forEach(p => {
+    const r = tb.insertRow();
+    const c = r.insertCell(); c.textContent = p.name + (p === G.me ? '（你）' : ''); c.className = t ? 'teamB' : 'teamA';
+    r.insertCell().textContent = p.kills; r.insertCell().textContent = p.deaths;
+  }));
+  return tb;
+}
+function showResult() {
+  const m = G.match; m.shownEnd = true;
+  const [a, b] = POL.covered, pct = i => (100 * POL.covered[i] / POL.total).toFixed(1);
+  const win = a === b ? (m.kills[0] === m.kills[1] ? -1 : m.kills[0] > m.kills[1] ? 0 : 1) : a > b ? 0 : 1;
+  $('resTitle').textContent = win < 0 ? '平手' : win === G.me.team ? '你們贏了' : '你們輸了';
+  $('resSub').textContent = TEAM_NAME[0] + ' 污染 ' + pct(0) + '%、' + m.kills[0] + ' 殺；' + TEAM_NAME[1] + ' 污染 ' + pct(1) + '%、' + m.kills[1] + ' 殺。';
+  $('resTable').replaceChildren(scoreTable());
+  $('result').hidden = false; $('hud').hidden = true;
+  if (document.pointerLockElement) document.exitPointerLock();
+  fart(0.7);
+}
+
+/* ---------- Net: presence only, so any admitted viewer can play ----------
+   房主跑完整模擬；其他人只負責自己的移動與資源。這是原型：沒有防作弊，也沒有房主轉移。 */
+const VER = 4, B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const B64I = {}; [...B64].forEach((c, i) => { B64I[c] = i; });
+const BX = NX >> 1, BY = NY >> 1, BZ = NZ >> 1, BN = BX * BY * BZ;
+const Net = { room: null, queued: false, queueT: 0, firstMulti: 0, force: false, left: new Set(), mmTimer: 0, busy: false };
+const cm = v => Math.round(v * 100);
+function blockCode(b) {          // 把 8 個細格合成 1 個 1m 方塊：濃度 7 位元、隊伍 2 位元、黏稠 1 位元
+  const x = b % BX, z = Math.floor(b / (BX * BY)), y = Math.floor((b - z * BX * BY) / BX);
+  let sum = 0, n = 0, a0 = 0, a1 = 0, st = 0;
+  for (let dz = 0; dz < 2; dz++) for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+    const k = x * 2 + dx + (y * 2 + dy) * NX + (z * 2 + dz) * NX * NY;
+    if (VOL.solid[k]) continue;
+    n++; const a = VOL.amt[k]; if (a <= 0) continue;
+    sum += a; if (VOL.own[k] === 0) a0 += a; else if (VOL.own[k] === 1) a1 += a;
+    if (VOL.typ[k] === STICKY) st = 1;
+  }
+  if (!n || sum <= 0) return 0;
+  return Math.min(127, Math.ceil(sum / n / 2)) | ((a1 > a0 ? 2 : 1) << 7) | (st << 9);
+}
+function encodeVol(n) {
+  let out = '', count = 0;
+  const put = (b, c) => { const v = b * 1024 + c; out += B64[v >> 18 & 63] + B64[v >> 12 & 63] + B64[v >> 6 & 63] + B64[v & 63]; count++; };
+  for (let i = 0; i < BN && count < 960; i++) {
+    const b = (n.scan + i) % BN, c = blockCode(b), old = n.sent[b];
+    if (c === old) continue;
+    if ((c >> 7) === (old >> 7) && Math.abs((c & 127) - (old & 127)) < 3) continue;
+    n.sent[b] = c; put(b, c); n.scan = (b + 1) % BN;
+  }
+  // 訊息可能遺失，所以持續重送既有內容，讓漏掉的方塊自己補回來
+  let healed = 0;
+  for (let i = 0; i < BN && healed < 120 && count < 960; i++) {
+    n.heal = (n.heal + 1) % BN;
+    if (n.sent[n.heal]) { put(n.heal, n.sent[n.heal]); healed++; }
+  }
+  return out;
+}
+function applyVol(str) {
+  for (let i = 0; i + 3 < str.length; i += 4) {
+    const v = (B64I[str[i]] << 18) | (B64I[str[i + 1]] << 12) | (B64I[str[i + 2]] << 6) | B64I[str[i + 3]];
+    const b = v >> 10, c = v & 1023;
+    if (!(b >= 0 && b < BN)) continue;
+    const x = b % BX, z = Math.floor(b / (BX * BY)), y = Math.floor((b - z * BX * BY) / BX);
+    const amt = (c & 127) * 2, own = (c >> 7 & 3) - 1, typ = c >> 9 & 1 ? STICKY : SOLID;
+    for (let dz = 0; dz < 2; dz++) for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) {
+      const k = x * 2 + dx + (y * 2 + dy) * NX + (z * 2 + dz) * NX * NY;
+      if (VOL.solid[k]) continue;
+      VOL.amt[k] = amt; VOL.own[k] = amt > 0 ? own : -1; VOL.typ[k] = typ;
+    }
+  }
+  VOL.dirty = true;
+}
+function netAct(kind, dir) {     // 客戶端要求房主處理的動作；帶序號重複送，遺失也不要緊
+  const n = G.net; if (!n) return;
+  const a = [++n.actSeq, kind];
+  if (kind === 0) a.push(dir); else if (dir) a.push(Math.round(dir.x * 1000), Math.round(dir.y * 1000), Math.round(dir.z * 1000));
+  n.acts.push(a); if (n.acts.length > 6) n.acts.shift();
+}
+function netHostRead() {
+  const n = G.net, now = G.time;
+  const seen = new Map(); n.gm.peers().forEach(p => seen.set(p.peer, p));
+  for (const p of G.players) {
+    if (!p.peer || p.isBot) continue;
+    const q = seen.get(p.peer);
+    if (q) p.lastSeen = now;
+    else if (now - (p.lastSeen === undefined ? now - 1 : p.lastSeen) > 8) { p.isBot = true; p.layerY = -3; p.res = 100; feed(p.name + ' 離線，由機器人接手'); continue; }
+    if (p.lastSeen === undefined) p.lastSeen = now;
+    p.netC = q && q.presence.c;
+  }
+}
+function stepNetPlayer(p, dt) {  // 房主端：套用遠端玩家回報的狀態
+  const c = p.netC;
+  if (!c || !Array.isArray(c) || c.length < 10) return;
+  const prev = p.pos.clone();
+  if (c[8] === p.rs) {           // 回城後，等對方確認才採用它的位置
+    p.netT.set(c[0] / 100, c[1] / 100, c[2] / 100);
+    if (isFinite(p.netT.x + p.netT.y + p.netT.z)) p.pos.lerp(p.netT, 1 - Math.exp(-20 * dt));
+    p.netF.set(c[3] / 100, c[4] / 100, c[5] / 100);
+    if (p.netF.lengthSq() > 0.01) p.fwd.lerp(p.netF.normalize(), 1 - Math.exp(-14 * dt)).normalize();
+  }
+  p.vel.copy(p.pos).sub(prev).divideScalar(Math.max(dt, 1e-3));
+  p.swimming = !!(c[6] & 1); p.netFire = !!(c[6] & 2);
+  if (c[7] === SOLID || c[7] === LIQUID || c[7] === STICKY) p.type = c[7];
+  p.swimT += ((p.swimming ? 1 : 0) - p.swimT) * (1 - Math.exp(-7 * dt));
+  if (p.swimming && Math.hypot(p.fwd.x, p.fwd.z) > 0.3) p.faceYaw = Math.atan2(p.fwd.x, p.fwd.z);
+  p.stroke += p.vel.length() * dt * 2.2;
+  if (p.netFire && p.type !== SOLID) { p.res = 100; fire(p, p.fwd.clone().negate(), dt, 'net'); }
+  else { p.sprayAcc = 0; p.lastBlob = null; }
+  if (Array.isArray(c[9])) for (const a of c[9]) {
+    if (!Array.isArray(a) || !(a[0] > p.ackAct)) continue;
+    p.ackAct = a[0];
+    const dir = new V3(a[2], a[3], a[4]).normalize();
+    if (a[1] === 0 && !p.held) {
+      const s = G.solids.find(x => x.id === a[2]);
+      if (s && !s.held && !s.thrown && s.pos.distanceTo(p.pos) < REACH + 1.5) pickUp(p, s);
+    } else if (a[1] === 1 && p.held) dropHeld(p);
+    else if (a[1] === 2 && p.held && isFinite(dir.x)) throwHeld(p, dir, 'net');
+    else if (a[1] === 4) toggleCarry(p);
+    else if (a[1] === 3 && p.type === SOLID && isFinite(dir.x) && G.match.ph === 'play') spawnSolid(buttOf(p), dir, p, 'net');
+  }
+}
+function snapshot() {
+  const m = G.match;
+  const h = { ph: m.ph, t: Math.round(m.t * 10), sc: POL.covered, k: m.kills, e: m.ev,
+    p: G.players.map(p => [cm(p.pos.x), cm(p.pos.y), cm(p.pos.z), cm(p.fwd.x), cm(p.fwd.y), cm(p.fwd.z),
+      (p.swimming ? 1 : 0) | (G.time - p.lastFire < 0.12 && p.type !== SOLID ? 2 : 0) | (p.inv > 0 ? 4 : 0),
+      p.type, Math.round(p.nausea), p.kills, p.deaths, Math.ceil(p.dead * 10), p.rs, p.hitN, p.dealt, p.ackAct, p.isBot ? 1 : 0, p.carriedBy ? p.carriedBy.idx : -1]),
+    s: G.solids.map(s => [s.id, cm(s.pos.x), cm(s.pos.y), cm(s.pos.z), Math.ceil(s.mass / 51), s.thrown ? 1 : 0, s.held ? s.held.idx : -1]) };
+  return h;
+}
+function applySnapshot(h) {
+  const m = G.match, me = G.me;
+  if (!h || !Array.isArray(h.p)) return;
+  m.t = (+h.t || 0) / 10;
+  if (h.ph !== m.ph && h.ph === 'play') toast('開始！污染水體，噁死對手');
+  m.ph = h.ph;
+  if (Array.isArray(h.sc)) POL.covered = [+h.sc[0] || 0, +h.sc[1] || 0];
+  if (Array.isArray(h.k)) m.kills = h.k;
+  h.p.forEach((a, i) => {
+    const p = G.players[i]; if (!p || !Array.isArray(a)) return;
+    p.carriedBy = a[17] >= 0 ? G.players[a[17]] || null : null;
+    p.kills = a[9]; p.deaths = a[10]; p.inv = a[6] & 4 ? 1 : 0; p.nausea = a[8]; p.dead = a[11] / 10; p.hitN = a[13]; p.dealt = a[14];
+    if (p === me) {
+      if (a[12] !== me.rs) { me.rs = a[12]; me.pos.copy(spawnOf(me)); me.vel.set(0, 0, 0); me.res = 100; me.stamina = 100; me.slow = 0; me.swimT = 0; toast('回城了'); }
+      return;
+    }
+    p.rs = a[12];
+    p.netT.set(a[0] / 100, a[1] / 100, a[2] / 100); p.netF.set(a[3] / 100, a[4] / 100, a[5] / 100);
+    p.swimming = !!(a[6] & 1); p.netFire = !!(a[6] & 2); p.type = a[7];
+  });
+  G.players.forEach(p => { p.carrying = null; });
+  G.players.forEach(p => { if (p.carriedBy) p.carriedBy.carrying = p; });
+  if (Array.isArray(h.s)) {
+    const keep = new Set();
+    me.heldNet = null;
+    for (const a of h.s) {
+      if (!Array.isArray(a)) continue;
+      keep.add(a[0]);
+      let s = G.solids.find(x => x.id === a[0]);
+      if (!s) { s = makeSolid(new V3(a[1] / 100, a[2] / 100, a[3] / 100), new V3(), 0, 'net', false); s.id = a[0]; s.netT = s.pos.clone(); }
+      s.netT.set(a[1] / 100, a[2] / 100, a[3] / 100);
+      s.mass = a[4] * 51; s.thrown = !!a[5]; sizeSolid(s);
+      s.held = a[6] >= 0 ? G.players[a[6]] || null : null;
+      if (s.held === me) me.heldNet = s;
+    }
+    for (let i = G.solids.length - 1; i >= 0; i--) if (!keep.has(G.solids[i].id)) removeSolid(i);
+    me.held = me.heldNet && G.time > G.heldIgnore ? me.heldNet : null;
+  }
+  if (Array.isArray(h.e)) m.ev = h.e;
+  handleKills();
+  if (m.ph === 'end' && !m.shownEnd) showResult();
+}
+function stepClient(dt) {
+  G.time += dt;
+  const me = G.me;
+  if (me.dead > 0) me.dead = Math.max(0.01, me.dead - dt);
+  else {
+    if (me.cool > 0) me.cool -= dt;
+    me.res = Math.min(100, me.res + 6 * dt);
+    stepEnv(me, dt);
+  }
+  stepMe(dt);
+  for (const p of G.players) {
+    if (p === me) continue;
+    const prev = p.pos.clone();
+    if (p.pos.distanceToSquared(p.netT) > 36) p.pos.copy(p.netT); else p.pos.lerp(p.netT, 1 - Math.exp(-12 * dt));
+    p.vel.copy(p.pos).sub(prev).divideScalar(Math.max(dt, 1e-3));
+    if (p.netF.lengthSq() > 0.01) p.fwd.lerp(p.netF.clone().normalize(), 1 - Math.exp(-14 * dt)).normalize();
+    p.swimT += ((p.swimming ? 1 : 0) - p.swimT) * (1 - Math.exp(-7 * dt));
+    if (p.swimming && Math.hypot(p.fwd.x, p.fwd.z) > 0.3) p.faceYaw = Math.atan2(p.fwd.x, p.fwd.z);
+    p.stroke += p.vel.length() * dt * 2.2;
+    if (p.netFire && p.dead <= 0 && p.type !== SOLID) { p.res = 100; fire(p, p.fwd.clone().negate(), dt, 'net'); }
+    else { p.sprayAcc = 0; p.lastBlob = null; }
+    if (p.dead > 0) p.dead = Math.max(0, p.dead - dt);
+  }
+  stepRiders();
+  stepBlobs(dt);
+  for (const s of G.solids) {
+    if (s.held) { s.pos.copy(handOf(s.held)); }
+    else if (s.netT) {
+      s.pos.lerp(s.netT, 1 - Math.exp(-14 * dt));
+      if (s.thrown) { s.mesh.rotation.x += dt * 9; s.mesh.rotation.y += dt * 5; if (Math.random() < dt * 30) addDrops(s.pos, 1, SPEC[SOLID].color, 0.6); }
+    }
+    s.mesh.position.copy(s.pos);
+  }
+  stepBubbles(dt);
+  G.chartAcc += dt;
+  if (G.chartAcc >= DIFFUSE_DT) { G.chartAcc -= DIFFUSE_DT; diffuseCharts(); }
+  stepFeedback(dt);
+}
+function netTick() {             // 每個模擬迴圈後呼叫；依時間節流送出
+  const n = G.net; if (!n || !G.match) return;
+  const now = performance.now();
+  if (n.role === 'host') {
+    if (now - n.tSnap >= 80) {
+      n.tSnap = now;
+      let h = snapshot();
+      while (JSON.stringify(h).length > 3900 && h.s.length) h.s.length = Math.max(0, h.s.length - 4);
+      n.gm.presence({ h }).catch(() => {});
+    }
+    if (now - n.tVol >= 250) { n.tVol = now; n.vl.presence({ v: ++n.volSeq, d: encodeVol(n) }).catch(() => {}); }
+  } else {
+    if (now - n.tSnap >= 50) {
+      n.tSnap = now;
+      const me = G.me, f = me.fwd;
+      n.gm.presence({ c: [cm(me.pos.x), cm(me.pos.y), cm(me.pos.z), cm(f.x), cm(f.y), cm(f.z), (me.swimming ? 1 : 0) | (G.wasFiring && me.type !== SOLID ? 2 : 0), me.type, me.rs, n.acts] }).catch(() => {});
+    }
+    const peers = n.gm.peers(), host = peers.find(p => p.peer === n.hostPeer);
+    if (host) { n.lastHost = now; if (host.presence.h !== n.lastH) { n.lastH = host.presence.h; n.gotH = true; applySnapshot(n.lastH); } }
+    const vh = n.vl.peers().find(p => p.peer === n.hostPeer);
+    if (vh && vh.presence.d !== n.lastD) { n.lastD = vh.presence.d; if (typeof n.lastD === 'string') applyVol(n.lastD); }
+    if (now - n.lastHost > 6000 && !(G.match.ph === 'end')) { netLeave(); toast2('房主離線，對局結束'); }
+  }
+}
+function toast2(t) { $('mmText').textContent = t; $('mmPanel').hidden = false; $('mmGo').hidden = true; $('mmCancel').hidden = true; }
+async function openRooms(g) {
+  const gm = await Net.room.join(g), vl = await Net.room.join(g + '.v');
+  return { gm, vl };
+}
+async function launchHost(peers, names) {
+  const g = 'g' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+  Net.busy = true; Net.queued = false; clearInterval(Net.mmTimer);
+  try {
+    const { gm, vl } = await openRooms(g);
+    Net.room.presence({ mm: { v: VER, g, r: peers, nm: names } }).catch(() => {});
+    startMatch(buildRoster(peers, names), 0, true);
+    G.net = { role: 'host', g, gm, vl, tSnap: 0, tVol: 0, volSeq: 0, sent: new Int32Array(BN), scan: 0, heal: 0 };
+    G.players.forEach(p => { p.lastSeen = undefined; });
+  } catch (e) { Net.room.presence({ mm: null }).catch(() => {}); toast2('無法建立房間：' + (e.code || '連線失敗')); }
+  Net.busy = false;
+}
+async function joinHost(offer, myIdx) {
+  const mm = offer.presence.mm;
+  Net.busy = true; Net.queued = false; clearInterval(Net.mmTimer);
+  try {
+    const { gm, vl } = await openRooms(mm.g);
+    Net.room.presence({ mm: { v: VER, g: mm.g } }).catch(() => {});
+    startMatch(buildRoster(mm.r, mm.nm || []), myIdx, false);
+    G.net = { role: 'client', g: mm.g, hostPeer: offer.peer, gm, vl, tSnap: 0, actSeq: 0, acts: [], lastH: null, lastD: null, lastHost: performance.now() };
+  } catch (e) { Net.room.presence({ mm: null }).catch(() => {}); toast2('無法加入房間：' + (e.code || '連線失敗')); }
+  Net.busy = false;
+}
+function mmTick() {
+  if (!Net.room || !Net.queued || Net.busy) return;
+  const peers = Net.room.peers(), mine = peers.find(p => p.sameTab);
+  if (!mine) return;
+  const offer = peers.find(p => {
+    const m = p.presence.mm;
+    return !p.sameTab && m && m.v === VER && typeof m.g === 'string' && Array.isArray(m.r) && m.r.includes(mine.peer) && !Net.left.has(m.g);
+  });
+  if (offer) { joinHost(offer, SEATS[offer.presence.mm.r.indexOf(mine.peer)]); return; }
+  const q = peers.filter(p => { const m = p.presence.mm; return m && m.v === VER && !m.g && typeof m.t === 'number'; })
+    .sort((a, b) => a.presence.mm.t - b.presence.mm.t || (a.peer < b.peer ? -1 : 1));
+  const leader = q[0] && q[0].sameTab, n = q.length, now = Date.now();
+  if (n >= 2 && !Net.firstMulti) Net.firstMulti = now;
+  if (n < 2) Net.firstMulti = 0;
+  const wait = Net.firstMulti ? Math.max(0, 15 - (now - Net.firstMulti) / 1000) : 0;
+  $('mmText').textContent = n >= 2
+    ? '配對中：' + n + ' / 6 人，' + Math.ceil(wait) + ' 秒後開局，不足由機器人補滿'
+    : '配對中：目前只有你一人。開著這個畫面等朋友，或立刻和機器人開打';
+  $('mmGo').hidden = !leader;
+  if (leader && (n >= 6 || (n >= 2 && wait <= 0) || (Net.force && n >= 2))) {
+    const six = q.slice(0, 6);
+    launchHost(six.map(p => p.peer), six.map(p => String(p.presence.mm.n || '泳者').slice(0, 12)));
+  } else if (leader && Net.force) { netCancelQueue(); startSolo(); }
+}
+function myNick() { return ($('nick').value.trim() || '泳者').slice(0, 12); }
+function netQueue() {
+  if (!Net.room) return;
+  Net.queued = true; Net.force = false; Net.firstMulti = 0; Net.queueT = Date.now();
+  $('mmPanel').hidden = false; $('mmGo').hidden = true; $('mmCancel').hidden = false; $('mmText').textContent = '配對中…';
+  Net.room.presence({ mm: { v: VER, t: Net.queueT, n: myNick() } }).catch(() => {});
+  clearInterval(Net.mmTimer); Net.mmTimer = setInterval(mmTick, 400);
+}
+function netCancelQueue() {
+  Net.queued = false; clearInterval(Net.mmTimer); $('mmPanel').hidden = true;
+  if (Net.room) Net.room.presence({ mm: null }).catch(() => {});
+}
+function netLeave() {
+  const n = G.net; G.net = null;
+  if (n) {
+    Net.left.add(n.g);
+    n.gm.leave().catch(() => {}); n.vl.leave().catch(() => {});
+    Net.room.presence({ mm: null }).catch(() => {});
+  }
+  clearWorld(); G.mode = 'menu'; G.me = null; G.paused = false;
+  if (document.pointerLockElement) document.exitPointerLock();
+  $('hud').hidden = true; $('resume').hidden = true; $('leave').hidden = true; menu.hidden = false; $('mmPanel').hidden = true;
+}
+function startSolo() { G.net = null; startMatch(buildRoster([], []).map((r, i) => i ? r : { n: myNick(), peer: null }), 0, true); }
+function wsRoom() {              // 自架伺服器的連線，介面與 claude.ai 的 room 相同
+  const url = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws';
+  const rooms = new Map(), token = [...crypto.getRandomValues(new Uint8Array(24))].map(b => b.toString(16).padStart(2, '0')).join('');
+  let ws = null, myId = null;
+  const out = m => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(m)); };
+  const makeRoom = name => {
+    const r = { map: new Map(), mine: {}, snap: [], waiters: [] };
+    const rebuild = () => {
+      r.snap = [{ peer: myId, sameTab: true, presence: r.mine }];
+      r.map.forEach((presence, peer) => { if (peer !== myId) r.snap.push({ peer, sameTab: false, presence }); });
+    };
+    r.rebuild = rebuild;
+    r.api = {
+      name,
+      presence: async patch => {
+        r.mine = { ...r.mine, ...patch };
+        Object.keys(patch).forEach(k => { if (patch[k] === null) delete r.mine[k]; });
+        rebuild(); out({ t: 'p', r: name, patch });
+      },
+      peers: () => r.snap,
+      connected: () => !!ws && ws.readyState === 1,
+      join,
+      leave: async () => { rooms.delete(name); out({ t: 'leave', r: name }); },
+    };
+    rooms.set(name, r);
+    return r;
+  };
+  async function join(name) {
+    const old = rooms.get(name); if (old) return old.api;
+    const r = makeRoom(name);
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { rooms.delete(name); reject({ code: 'upstream_error' }); }, 10000);
+      r.waiters.push(err => { clearTimeout(timer); if (err) { rooms.delete(name); reject({ code: err }); } else resolve(r.api); });
+      out({ t: 'join', r: name });
+    });
+  }
+  const lobby = makeRoom('lobby');
+  return new Promise(resolve => {
+    let settled = false;
+    const settle = v => { if (!settled) { settled = true; resolve(v); } };
+    setTimeout(() => settle(null), 5000);
+    const connect = () => {
+      ws = new WebSocket(url);
+      ws.onopen = () => out({ t: 'hello', token });
+      ws.onmessage = e => {
+        let m; try { m = JSON.parse(e.data); } catch (err) { return; }
+        if (m.t === 'hi') {
+          myId = m.id;
+          rooms.forEach((r, name) => {                 // 重連後恢復所有房間與自己的狀態
+            out({ t: 'join', r: name });
+            if (Object.keys(r.mine).length) out({ t: 'p', r: name, patch: r.mine });
+          });
+          return;
+        }
+        const r = rooms.get(m.r); if (!r) return;
+        if (m.t === 'all') {
+          r.map = new Map(Object.entries(m.peers || {})); r.rebuild();
+          r.waiters.splice(0).forEach(f => f(null));
+          if (r === lobby) settle(lobby.api);
+        } else if (m.t === 'p') {
+          const merged = { ...(r.map.get(m.id) || {}), ...m.patch };
+          Object.keys(m.patch || {}).forEach(k => { if (m.patch[k] === null) delete merged[k]; });
+          r.map.set(m.id, merged); r.rebuild();
+        } else if (m.t === 'gone') { r.map.delete(m.id); r.rebuild(); }
+        else if (m.t === 'err') r.waiters.splice(0).forEach(f => f(m.code));
+      };
+      ws.onclose = () => { setTimeout(connect, 1500); };
+      ws.onerror = () => { if (!settled) settle(null); };
+    };
+    connect();
+  });
+}
+async function initNet() {
+  let room = null;
+  try {
+    if (window.claude && claude.use) room = await claude.use('room');
+    if (!room && /^https?:$/.test(location.protocol)) room = await wsRoom();
+  } catch (e) { room = null; }
+  Net.room = room;
+  $('mMatch').disabled = !room;
+  $('mMatchNote').textContent = room ? '和也開著這個頁面的人配成 3 對 3，不足由機器人補滿。' : '這個環境無法連線，可先玩單人對局。';
+}
+
+/* ---------- Gross effects ---------- */
+const screenSplats = [];
+function screenSplat(n) {
+  const w = innerWidth, h = innerHeight;
+  for (let i = 0; i < n && screenSplats.length < 30; i++) {
+    const r = 14 + Math.random() * 60 * Math.min(1, n / 3 + 0.3), pts = [], spots = [], drips = [];
+    const f1 = 3 + Math.floor(Math.random() * 4), f2 = 7 + Math.floor(Math.random() * 6), ph = Math.random() * 6;
+    for (let j = 0; j < 48; j++) {             // 不規則邊緣，偶爾甩出尖刺
+      const t = j / 48 * Math.PI * 2, spike = Math.random() < 0.1 ? 0.5 + Math.random() * 0.9 : 0;
+      const rr = r * (0.62 + 0.2 * Math.sin(t * f1 + ph) + 0.12 * Math.sin(t * f2 - ph) + spike);
+      pts.push([Math.cos(t) * rr, Math.sin(t) * rr * 0.85]);
+    }
+    for (let j = 0; j < 14; j++) { const t = Math.random() * 6.3, d = r * (1 + Math.random() * 1.2); spots.push([Math.cos(t) * d, Math.sin(t) * d, 1 + Math.random() * 3.5]); }
+    for (let j = 0; j < 4; j++) drips.push([rnd() * r * 0.7, 2 + Math.random() * 7, 0, 0.5 + Math.random()]);
+    const tone = [['#2e1b05', '#4a2e0a'], ['#3b2407', '#5c3b0c'], ['#46360a', '#6b5512']][Math.floor(Math.random() * 3)];
+    screenSplats.push({ x: Math.random() * w, y: Math.random() * h * 0.8, r, pts, spots, drips, a: 0.95, tone, vy: 2 + Math.random() * 6 });
+  }
+}
+function drawScreenSplats(dt) {
+  const cv = $('splats');
+  if (cv.width !== innerWidth || cv.height !== innerHeight) { cv.width = innerWidth; cv.height = innerHeight; }
+  if (!screenSplats.length && !cv.dirtyS) return;
+  const g = cv.getContext('2d');
+  g.clearRect(0, 0, cv.width, cv.height); cv.dirtyS = screenSplats.length > 0;
+  for (let i = screenSplats.length - 1; i >= 0; i--) {
+    const s = screenSplats[i];
+    s.a -= dt * 0.24; s.y += s.vy * dt;
+    if (s.a <= 0) { screenSplats.splice(i, 1); continue; }
+    g.globalAlpha = s.a; g.lineCap = 'round';
+    g.strokeStyle = s.tone[0];
+    for (const d of s.drips) {                 // 往下流的痕跡，越流越細
+      d[2] = Math.min(s.r * 5, d[2] + d[1] * dt * 5 * d[3]);
+      g.lineWidth = d[1]; g.beginPath(); g.moveTo(s.x + d[0], s.y); g.lineTo(s.x + d[0], s.y + s.r * 0.5 + d[2] * 0.6); g.stroke();
+      g.lineWidth = d[1] * 0.55; g.beginPath(); g.moveTo(s.x + d[0], s.y + s.r * 0.5 + d[2] * 0.6); g.lineTo(s.x + d[0] + d[1] * 0.2, s.y + s.r * 0.5 + d[2]); g.stroke();
+    }
+    const path = k => { g.beginPath(); s.pts.forEach((q, j) => { const x = s.x + q[0] * k, y = s.y + q[1] * k; if (j) g.lineTo(x, y); else g.moveTo(x, y); }); g.closePath(); };
+    g.fillStyle = s.tone[0]; path(1); g.fill();
+    g.fillStyle = s.tone[1]; path(0.68); g.fill();
+    g.fillStyle = '#ffffff30'; g.beginPath(); g.ellipse(s.x - s.r * 0.2, s.y - s.r * 0.22, s.r * 0.16, s.r * 0.08, -0.5, 0, 6.3); g.fill();   // 溼亮反光
+    g.fillStyle = s.tone[0];
+    for (const q of s.spots) { g.beginPath(); g.arc(s.x + q[0], s.y + q[1], q[2], 0, 6.3); g.fill(); }
+  }
+  g.globalAlpha = 1;
+}
+// 雲團裡的渣：玉米粒、黑渣、黃油塊，只在鏡頭附近有污染的格子生成
+const SCUM = 220, scumPos = new Float32Array(SCUM * 3).fill(-999), scumCol = new Float32Array(SCUM * 3), scumGeo = new THREE.BufferGeometry(), scum = [];
+scumGeo.setAttribute('position', new THREE.BufferAttribute(scumPos, 3));
+scumGeo.setAttribute('color', new THREE.BufferAttribute(scumCol, 3));
+const scumPts = new THREE.Points(scumGeo, new THREE.PointsMaterial({ size: 0.15, map: dotTex, alphaTest: 0.5, vertexColors: true }));
+scumPts.frustumCulled = false; scene.add(scumPts);
+const SCUM_COL = [[0.82, 0.68, 0.18], [0.08, 0.05, 0.02], [0.32, 0.2, 0.06], [0.55, 0.45, 0.14], [0.26, 0.33, 0.07]];
+const vTmp = new V3();
+function stepScum(dt) {
+  for (let tries = 0; tries < 30 && scum.length < SCUM; tries++) {
+    vTmp.set(camera.position.x + rnd() * 13, camera.position.y + rnd() * 8, camera.position.z + rnd() * 13);
+    if (vTmp.y >= WATER_Y) continue;
+    const k = volIndex(vTmp);
+    if (k < 0 || VOL.amt[k] < 16) continue;
+    const c = SCUM_COL[Math.floor(Math.random() * SCUM_COL.length)];
+    scum.push({ p: vTmp.clone(), k, life: 3 + Math.random() * 6, c, ph: Math.random() * 6, fall: Math.random() < 0.5 ? -0.12 : 0.07 });
+  }
+  for (let i = scum.length - 1; i >= 0; i--) {
+    const s = scum[i]; s.life -= dt; s.ph += dt;
+    s.p.y += s.fall * dt; s.p.x += Math.sin(s.ph * 0.9) * 0.08 * dt; s.p.z += Math.cos(s.ph * 0.7) * 0.08 * dt;
+    if (s.life <= 0 || VOL.amt[s.k] < 8) { scum.splice(i, 1); continue; }
+    if (Math.random() < dt * 0.05 && bubbles.length < BUB) spawnBubble(s.p);      // 冒沼氣
+  }
+  for (let i = 0; i < SCUM; i++) {
+    const s = scum[i];
+    if (s) { scumPos[i * 3] = s.p.x; scumPos[i * 3 + 1] = s.p.y; scumPos[i * 3 + 2] = s.p.z; scumCol.set(s.c, i * 3); }
+    else { scumPos[i * 3] = -999; scumPos[i * 3 + 1] = -999; scumPos[i * 3 + 2] = -999; }
+  }
+  scumGeo.attributes.position.needsUpdate = true; scumGeo.attributes.color.needsUpdate = true;
+}
+
+/* ---------- Audio ---------- */
+let audio = null;
+function initAudio() {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume();
+  } catch (e) { audio = null; }
+}
+let lastFart = 0;
+function fart(pitch) {           // 短促的放屁聲，只在動作發生時響
+  if (!audio) return;
+  const now = audio.currentTime; if (now - lastFart < 0.5) return; lastFart = now;
+  const dur = 0.22 + 0.25 * Math.random() + (1 - pitch) * 0.5;
+  const o = audio.createOscillator(), f = audio.createBiquadFilter(), g = audio.createGain(), lfo = audio.createOscillator(), lg = audio.createGain();
+  o.type = 'sawtooth'; o.frequency.setValueAtTime((85 + Math.random() * 40) * pitch, now); o.frequency.exponentialRampToValueAtTime(48 * pitch, now + dur);
+  lfo.type = 'square'; lfo.frequency.value = 24 + Math.random() * 22; lg.gain.value = 0.11;
+  f.type = 'lowpass'; f.frequency.value = 620;
+  g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.001, now + dur);
+  lfo.connect(lg); lg.connect(g.gain); o.connect(f); f.connect(g); g.connect(audio.destination);
+  o.start(now); lfo.start(now); o.stop(now + dur); lfo.stop(now + dur);
+}
+function splat(pitch) {
+  if (!audio) return;
+  const len = audio.sampleRate * 0.12 | 0, buf = audio.createBuffer(1, len, audio.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2);
+  const s = audio.createBufferSource(); s.buffer = buf;
+  const f = audio.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 500 * pitch;
+  const g = audio.createGain(); g.gain.value = 0.3;
+  s.connect(f); f.connect(g); g.connect(audio.destination); s.start();
+}
+
+/* ---------- Stream rendering: camera-facing ribbons plus droplets ---------- */
+const RIB = 900;
+const ribPos = new Float32Array(RIB * 6 * 3), ribCol = new Float32Array(RIB * 6 * 4), ribGeo = new THREE.BufferGeometry();
+ribGeo.setAttribute('position', new THREE.BufferAttribute(ribPos, 3));
+ribGeo.setAttribute('color', new THREE.BufferAttribute(ribCol, 4));
+const ribMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+ribMat.onBeforeCompile = () => {};
+const ribbons = new THREE.Mesh(ribGeo, ribMat); ribbons.frustumCulled = false; scene.add(ribbons);
+const dropPos = new Float32Array(220 * 3), dropCol = new Float32Array(220 * 3), dropGeo = new THREE.BufferGeometry();
+dropGeo.setAttribute('position', new THREE.BufferAttribute(dropPos, 3));
+dropGeo.setAttribute('color', new THREE.BufferAttribute(dropCol, 3));
+const dropPts = new THREE.Points(dropGeo, new THREE.PointsMaterial({ size: 0.13, map: dotTex, alphaTest: 0.5, vertexColors: true }));
+dropPts.frustumCulled = false; scene.add(dropPts);
+const col = new THREE.Color();
+function drawStreams() {
+  let n = 0;
+  const a = new V3(), b = new V3(), side = new V3(), view = new V3(), A = new V3(), B = new V3(), C = new V3(), D = new V3();
+  for (const bl of G.blobs) {
+    if (n >= RIB) break;
+    const link = bl.link && !bl.link.dead ? bl.link : null;
+    a.copy(bl.pos);
+    if (link && link.pos.distanceToSquared(bl.pos) < 9) b.copy(link.pos);
+    else b.copy(bl.pos).addScaledVector(bl.vel, -0.03);
+    view.subVectors(camera.position, a).normalize();
+    side.subVectors(b, a).cross(view);
+    if (side.lengthSq() < 1e-8) continue;
+    side.normalize();
+    const under = bl.pos.y < WATER_Y, t = clamp(bl.vel.length() / SPEC[bl.type].speed, 0, 1);
+    const w = (bl.type === STICKY ? 0.14 + 0.1 * (1 - t) : 0.045 + (under ? 0.18 * (1 - t) : 0.07 * (1 - t))) * (bl.chunk ? 2.4 : 1);
+    const alpha = bl.type === STICKY ? 0.97 : bl.chunk ? 0.96 : (under ? 0.35 + 0.5 * t : 0.88);
+    A.copy(a).addScaledVector(side, w); B.copy(a).addScaledVector(side, -w);
+    C.copy(b).addScaledVector(side, w); D.copy(b).addScaledVector(side, -w);
+    [A, B, C, C, B, D].forEach((v, i) => { ribPos.set([v.x, v.y, v.z], (n * 6 + i) * 3); });
+    col.setHex(SPEC[bl.type].color).multiplyScalar(bl.chunk ? 0.32 : bl.tint);
+    for (let i = 0; i < 6; i++) ribCol.set([col.r, col.g, col.b, alpha], (n * 6 + i) * 4);
+    n++;
+  }
+  ribGeo.setDrawRange(0, n * 6);
+  ribGeo.attributes.position.needsUpdate = true; ribGeo.attributes.color.needsUpdate = true;
+  const m = Math.min(220, G.drops.length);
+  for (let i = 0; i < m; i++) {
+    const d = G.drops[i]; dropPos.set([d.pos.x, d.pos.y, d.pos.z], i * 3);
+    col.setHex(d.color); dropCol.set([col.r, col.g, col.b], i * 3);
+  }
+  dropGeo.setDrawRange(0, m);
+  dropGeo.attributes.position.needsUpdate = true; dropGeo.attributes.color.needsUpdate = true;
+  for (let i = 0; i < BUB; i++) { const q = bubbles[i]; bubPos.set(q ? [q.p.x, q.p.y, q.p.z] : [-999, -999, -999], i * 3); }
+  bubGeo.attributes.position.needsUpdate = true;
+}
+/* 彈道預覽：顯示這一發實際會飛到哪裡 */
+const PREV = 70, prevGeo = new THREE.BufferGeometry();
+prevGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(PREV * 3), 3));
+const prevLine = new THREE.Line(prevGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 }));
+prevLine.frustumCulled = false; scene.add(prevLine);
+const prevEnd = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
+scene.add(prevEnd);
+function drawPreview() {
+  prevLine.visible = prevEnd.visible = !!(G.aimDir && G.shooter);
+  if (!G.aimDir || !G.shooter) return;
+  const arr = prevGeo.attributes.position.array, dt = 0.04;
+  let n = 0;
+  if (G.shooter.held) {          // 投擲：畫到固體用完或撞到東西為止
+    const p = handOf(G.shooter), v = G.aimDir.clone().multiplyScalar(THROW.speed);
+    let m = G.shooter.held.mass;
+    for (; n < PREV; n++) {
+      arr[n * 3] = p.x; arr[n * 3 + 1] = p.y; arr[n * 3 + 2] = p.z;
+      if (p.y < WATER_Y) { v.multiplyScalar(Math.exp(-THROW.drag * dt)); m -= THROW.rate * dt; }
+      else { v.y -= 9.8 * dt; m -= THROW.rate * THROW.airShare * dt; }
+      const q = p.clone().addScaledVector(v, dt);
+      if (m <= 0 || pointBox(q)) { n++; break; }
+      p.copy(q);
+    }
+    prevGeo.setDrawRange(0, n); prevGeo.attributes.position.needsUpdate = true;
+    prevEnd.position.copy(p);
+    return;
+  }
+  const type = G.shooter.type, spec = SPEC[type], p = buttOf(G.shooter), v = G.aimDir.clone().multiplyScalar(type === SOLID && !G.shooter.carried ? EXCRETE_SPEED : spec.speed);
+  for (; n < PREV; n++) {
+    arr[n * 3] = p.x; arr[n * 3 + 1] = p.y; arr[n * 3 + 2] = p.z;
+    const under = p.y < WATER_Y;
+    if (under) { v.multiplyScalar(Math.exp(-spec.waterDrag * dt)); if (type === SOLID) v.y += (-1.4 - v.y) * (1 - Math.exp(-3 * dt)); }
+    else { v.multiplyScalar(Math.exp(-spec.airDrag * dt)); v.y -= 9.8 * dt; }
+    const q = p.clone().addScaledVector(v, dt);
+    if (pointBox(q) || (under && type !== SOLID && v.lengthSq() < 0.4)) { n++; break; }
+    p.copy(q);
+  }
+  prevGeo.setDrawRange(0, n); prevGeo.attributes.position.needsUpdate = true;
+  prevEnd.position.copy(p);
+}
+
+const pickMark = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 8), new THREE.MeshBasicMaterial({ color: 0xe0a83c, wireframe: true, transparent: true, opacity: 0.8 }));
+pickMark.visible = false; scene.add(pickMark);
+
+/* ---------- Frame ---------- */
+const skyTmp = new THREE.Color(), poseTmp = new THREE.Object3D();
+function updateCamera(dt) {
+  const me = G.me; if (!me) return;
+  let yaw = camYaw(), pitch = camPitch();
+  if (keys.has('KeyQ') && !G.carry) { yaw += Math.PI; pitch = -pitch; }
+  const f = dirOf(yaw, pitch), high = G.carry || me.carriedBy, target = me.pos.clone().add(new V3(0, high ? 2.3 : 0.9, 0));   // 扛人時鏡頭拉高，準星才不會被兩人擋住
+  G.shoulder += ((me.held ? 1 : 0) - G.shoulder) * (1 - Math.exp(-5 * dt));        // 拿著固體時改成過肩視角，身體才不會擋住準星
+  target.add(new V3(-f.z * 1.1 * G.shoulder, 0.35 * G.shoulder, f.x * 1.1 * G.shoulder));
+  const back = f.clone().negate(), wantDist = high ? Math.max(TUNE.camDist, 6.5) : TUNE.camDist;
+  const dist = Math.max(0.8, Math.min(wantDist, rayBoxes(target, back, wantDist) - 0.3));
+  const want = target.clone().addScaledVector(back, dist);
+  G.camPos.lerp(want, 1 - Math.exp(-14 * dt));
+  camera.position.copy(G.camPos);
+  camera.lookAt(G.camPos.clone().addScaledVector(f, 10));
+  const queasy = clamp((me.nausea - 30) / 70, 0, 1);       // 越噁心鏡頭越暈
+  if (queasy > 0) camera.rotateZ(Math.sin(G.time * 1.7) * 0.09 * queasy);
+  const sprinting = (keys.has('ShiftLeft') || keys.has('ShiftRight')) && me.vel.length() > 5;
+  G.sprintFx += ((sprinting ? 1 : 0) - G.sprintFx) * (1 - Math.exp(-5 * dt));
+  camera.fov = 70 + 9 * G.sprintFx + Math.sin(G.time * 2.3) * 3 * queasy; camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+  const under = camera.position.y < WATER_Y;
+  const depthT = clamp(-camera.position.y / MAX_DEPTH, 0, 1);
+  if (under) {
+    skyTmp.copy(SHALLOW_C).lerp(DEEP_C, Math.pow(depthT, 0.8));
+    scene.background.copy(skyTmp); scene.fog.color.copy(skyTmp); scene.fog.density = 0.035 + 0.05 * depthT;
+    hemi.intensity = 0.6 - 0.38 * depthT; sun.intensity = 0.42 - 0.34 * depthT;
+  } else {
+    scene.background.copy(AIR); scene.fog.color.copy(AIR); scene.fog.density = 0.004;
+    hemi.intensity = 0.6; sun.intensity = 0.42;
+  }
+}
+function syncVisuals(dt) {
+  for (const p of G.players) {
+    const hidden = p.dead > 0;
+    p.mesh.visible = !hidden && !(p.inv > 0 && Math.sin(G.time * 22) > 0.3);
+    if (p.tag) { p.tag.visible = !hidden; p.tag.position.copy(p.pos).add(new V3(0, 1.5, 0)); }
+    p.mesh.position.copy(p.pos);
+    p.mesh.lookAt(p.pos.clone().add(p.fwd));
+    const sw = p.swimT;
+    if (sw < 0.995) {             // 直立：頭朝上、面向 faceYaw
+      poseTmp.position.copy(p.pos);
+      poseTmp.lookAt(p.pos.clone().add(dirOf(p.faceYaw, 0)));
+      poseTmp.rotateX(-Math.PI / 2);
+      p.mesh.quaternion.slerp(poseTmp.quaternion, 1 - sw);
+    }
+    p.throwFx = Math.max(0, p.throwFx - dt * 3.5);
+    const sp = p.vel.length(), s = Math.sin(p.stroke * 3.4), tread = Math.sin(G.time * 3.2);
+    p.mesh.limbs.forEach(m => {
+      const arm = m.userData.arm, us = m.userData.s;
+      const swimA = 1.57 * (arm ? -1 : 1) + us * s * Math.min(0.75, 0.15 + sp * 0.11);
+      const holdA = arm && p.held ? 0.15 : 1.57;   // 拿著固體時手舉在身前；否則下垂踩水
+      const uprightA = holdA + us * tread * (arm ? 0.35 : 0.22);
+      m.rotation.x = swimA * sw + uprightA * (1 - sw) - (arm ? p.throwFx * 1.4 : 0);
+      m.rotation.z = Math.sign(m.position.x) * (arm ? 0.55 : 0.12) * (1 - sw);
+    });
+    // 轉向時身體傾斜
+    const side = new V3().crossVectors(p.fwd, new V3(0, 1, 0));
+    const lean = clamp(p.vel.dot(side) * 0.16, -0.45, 0.45);
+    p.roll += (lean - p.roll) * (1 - Math.exp(-6 * dt));
+    p.mesh.rotateZ(p.roll * sw + (p.stun > 0 ? G.time * 6 : 0));
+  }
+  for (let i = 0; i < motes.length; i++) {
+    const m = motes[i];
+    m.p.addScaledVector(m.c.f(m.p), dt);
+    if (m.p.x < m.c.min.x || m.p.x > m.c.max.x || m.p.y < m.c.min.y || m.p.y > m.c.max.y || m.p.z < m.c.min.z || m.p.z > m.c.max.z) m.p.copy(randIn(m.c));
+    motePos.set([m.p.x, m.p.y, m.p.z], i * 3);
+  }
+  moteGeo.attributes.position.needsUpdate = true; moteGeo.computeBoundingSphere();
+  drawStreams(); drawPreview(); uploadVol(); redrawCharts(); stepScum(dt); drawScreenSplats(dt);
+}
+function hud() {
+  const me = G.me; if (!me) return;
+  const shooter = G.carry ? G.partner : me;
+  const d = Math.max(0, -me.pos.y);
+  $('depth').firstChild.nodeValue = d.toFixed(1);
+  $('gaugeMe').style.top = clamp(d / MAX_DEPTH, 0, 1) * 100 + '%';
+  $('spd').textContent = me.vel.length().toFixed(1) + ' m/s';
+  $('typ').textContent = TYPE_NAME[shooter.type];
+  $('zone').textContent = me.zone === '己方雲團' ? '己方雲團 +' + (6 + TUNE.cloudRes) + '/s' : me.zone;
+  $('held').textContent = me.held ? '固體 ' + Math.round(100 * me.held.mass / SPEC[SOLID].mass) + '%' : '無';
+  G.near = !G.carry && !me.held && !me.carrying && !me.carriedBy ? nearestSolid(me, REACH) : null;
+  pickMark.visible = !!G.near; if (G.near) pickMark.position.copy(G.near.pos);
+  $('zone').style.color = me.zone === '敵方雲團' ? 'var(--bad)' : me.zone === '己方雲團' ? 'var(--ok)' : '';
+  $('resV').textContent = shooter.res.toFixed(0); $('barRes').firstChild.style.width = shooter.res + '%';
+  $('nauV').textContent = me.nausea.toFixed(0); $('barNausea').firstChild.style.width = Math.min(100, me.nausea) + '%';
+  $('barSta').firstChild.style.width = me.stamina + '%';
+  $('cross').hidden = !G.carry && !me.held && !me.carriedBy;
+  $('cross').className = G.hitFx > 0 ? 'hit' : '';
+  $('tint').style.opacity = Math.min(0.55, G.meTint * 0.5 + me.nausea * 0.0035);
+  const pct = i => (100 * POL.covered[i] / POL.total).toFixed(1);
+  const m = G.match, sec = m ? Math.ceil(m.t) : 0;
+  const txt = m
+    ? TEAM_NAME[0] + ' ' + pct(0) + '% · ' + m.kills[0] + ' 殺　' + Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + '　' + m.kills[1] + ' 殺 · ' + pct(1) + '% ' + TEAM_NAME[1]
+    : 'A 隊水體 ' + pct(0) + '%　B 隊水體 ' + pct(1) + '%　停止濃度 ×' + POL.stopScale.toFixed(2) + '　反作用力 ' + (G.recoil ? '開' : '關');
+  if ($('score').textContent !== txt) $('score').textContent = txt;
+  let obj = '';
+  if (G.mode === 'rings') obj = G.ringIdx < G.rings.length ? '穿過黃色圓環 ' + (G.ringIdx + 1) + ' / 10' + (G.ringStart !== null ? '　' + (G.time - G.ringStart).toFixed(1) + ' 秒' : '') : '';
+  if (m && m.ph === 'count') obj = '你是' + TEAM_NAME[me.team] + '，' + sec + ' 秒後開始';
+  $('dead').hidden = !(me.dead > 0);
+  if (me.dead > 0) { const t = '被噁死了，' + Math.ceil(me.dead) + ' 秒後回城'; if ($('dead').textContent !== t) $('dead').textContent = t; }
+  const wantBoard = !!m && keys.has('Tab');
+  $('board').hidden = !wantBoard;
+  if (wantBoard && performance.now() - (G.boardT || 0) > 400) { G.boardT = performance.now(); $('board').replaceChildren(scoreTable()); }
+  if (G.mode === 'carry') obj = '打中紅色移動靶 ' + G.carryHits + ' / 3　剩 ' + Math.max(0, G.carryLeft).toFixed(0) + ' 秒　白線是這一發的落點';
+  if (!obj && !G.carry) {
+    if (me.carriedBy) obj = '被 ' + me.carriedBy.name + ' 扛著：滑鼠瞄準，左鍵噴射，T 跳下';
+    else if (me.carrying) obj = '扛著 ' + me.carrying.name + '：你負責游，不能噴射，T 放下';
+    else if (me.held) obj = '左鍵投擲到準星　E 放下';
+    else if (G.near) obj = '按 E 撿起固體';
+    else if (m && me.dead <= 0) { const q = nearestMate(me, CARRY_REACH); if (q) obj = '按 T 扛起 ' + q.name; }
+  }
+  if ($('objective').textContent !== obj) $('objective').textContent = obj;
+}
+let toastTimer = 0;
+function toast(t) { const e = $('toast'); e.textContent = t; e.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { e.hidden = true; }, 2600); }
+
+function render(now) {
+  renderer.setRenderTarget(rt);
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+  const u = postMat.uniforms;
+  u.invVP.value.copy(camera.matrixWorld).multiply(camera.projectionMatrixInverse);
+  u.camPos.value.copy(camera.position);
+  u.time.value = now / 1000;
+  renderer.render(postScene, postCam);
+}
+let last = performance.now(), acc = 0;
+function pump(now, background) {  // 視窗在背景時連線對局也要繼續跑模擬
+  const dt = Math.min(background ? 2 : 0.1, (now - last) / 1000); last = now;
+  if (G.mode !== 'menu' && (!G.paused || G.net)) {
+    acc += dt;
+    while (acc >= 1 / 60) { step(1 / 60); acc -= 1 / 60; }
+    netTick();
+  }
+  return dt;
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = pump(now);
+  if (G.mode !== 'menu' && (!G.paused || G.net)) { updateCamera(dt); syncVisuals(dt); hud(); }
+  else if (G.me) { updateCamera(dt); syncVisuals(dt); }
+  else { camera.position.set(-30 + Math.sin(now / 9000) * 6, 7, 20); camera.lookAt(0, -3, 0); camera.updateMatrixWorld(); }
+  render(now);
+}
+requestAnimationFrame(frame);
+setInterval(() => { const now = performance.now(); if (now - last > 150) pump(now, true); }, 100);   // rAF 停住時的備援
+
+/* ---------- Depth gauge marks ---------- */
+for (let d = 0; d <= MAX_DEPTH; d += 2) {
+  const s = document.createElement('span'); s.style.top = (d / MAX_DEPTH * 100) + '%';
+  const em = document.createElement('em'); em.textContent = d; s.append(em); $('gauge').append(s);
+}
+
+/* ---------- Menu and input ---------- */
+const SLIDERS = [
+  ['speed', '游泳速度', 2.5, 7, 0.1], ['accel', '加速反應', 1.5, 14, 0.5], ['coast', '滑行阻力', 0.4, 6, 0.1],
+  ['turn', '身體轉向', 1.5, 12, 0.5], ['camDist', '鏡頭距離', 3, 10, 0.5], ['cloudRes', '雲團回復', 0, 60, 2],
+];
+SLIDERS.forEach(([key, label, min, max, st]) => {
+  const row = document.createElement('label'); row.className = 'slider'; row.htmlFor = 'tune-' + key;
+  const name = document.createElement('span'); name.textContent = label;
+  const inp = document.createElement('input'); inp.type = 'range'; inp.id = 'tune-' + key; inp.min = min; inp.max = max; inp.step = st; inp.value = TUNE[key];
+  const out = document.createElement('output'); out.textContent = TUNE[key];
+  inp.oninput = () => { TUNE[key] = +inp.value; out.textContent = inp.value; refreshLog(); };
+  row.append(name, inp, out); $('sliders').append(row);
+});
+const menu = $('menu');
+function refreshLog() {
+  const rate = k => LOG.shots[k] ? (100 * LOG.hits[k] / LOG.shots[k]).toFixed(1) + '%' : '尚無資料';
+  $('log').value = JSON.stringify({
+    手感數值: TUNE, 單人命中率: rate('solo'), 扛人命中率: rate('carry'), 發射與命中: { shots: LOG.shots, hits: LOG.hits }, 穿環: LOG.rings, 扛人靶場: LOG.carry,
+    水體覆蓋: { A: POL.covered[0], B: POL.covered[1], total: POL.total },
+  }, null, 1);
+}
+function openMenu() { G.paused = true; keys.clear(); mouseDown = false; refreshLog(); $('resume').hidden = false; $('leave').hidden = !G.net; $('hud').hidden = true; menu.hidden = false; }
+function closeMenu() {
+  G.paused = false; menu.hidden = true; $('hud').hidden = false; initAudio();
+  try { const r = $('view').requestPointerLock && $('view').requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* 改用未鎖定的滑鼠移動 */ }
+}
+$('resume').onclick = closeMenu;
+$('mSolo').onclick = () => { netCancelQueue(); startSolo(); };
+$('mMatch').onclick = () => netQueue();
+$('mmCancel').onclick = () => netCancelQueue();
+$('mmGo').onclick = () => { Net.force = true; mmTick(); };
+$('leave').onclick = () => netLeave();
+$('rMenu').onclick = () => netLeave();
+$('rAgain').onclick = () => { netLeave(); netQueue(); };
+$('rSolo').onclick = () => { netLeave(); startSolo(); };
+try { $('nick').value = localStorage.getItem('m0-nick') || '泳者' + Math.floor(Math.random() * 900 + 100); } catch (e) { $('nick').value = '泳者' + Math.floor(Math.random() * 900 + 100); }
+$('nick').onchange = () => { try { localStorage.setItem('m0-nick', myNick()); } catch (e) { /* 只是記住暱稱，存不了也無妨 */ } };
+$('mRings').onclick = () => { netCancelQueue(); start('rings'); };
+$('mCarry').onclick = () => { netCancelQueue(); start('carry'); };
+$('copy').onclick = () => {
+  const t = $('log');
+  if (navigator.clipboard) navigator.clipboard.writeText(t.value).then(() => { $('copy').textContent = '已複製'; }).catch(() => t.select());
+  else t.select();
+};
+document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && G.mode !== 'menu' && !G.paused && !(G.match && G.match.ph === 'end')) openMenu(); });
+addEventListener('keydown', e => {
+  if (menu.hidden === false) return;
+  keys.add(e.code);
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.code)) e.preventDefault();
+  if (e.repeat) return;
+  const shooter = G.carry ? G.partner : G.me;
+  if (e.code === 'Digit1') setType(shooter, SOLID);
+  if (e.code === 'Digit2') setType(shooter, LIQUID);
+  if (e.code === 'Digit3') setType(shooter, STICKY);
+  if (e.code === 'KeyE' && !G.carry && G.me && G.me.stun <= 0 && !(G.me.dead > 0) && !G.me.carrying && !G.me.carriedBy) {
+    if (G.me.held) { if (G.auth) dropHeld(G.me); else { netAct(1); G.heldIgnore = G.time + 0.4; G.me.held = null; } }
+    else {
+      const s = nearestSolid(G.me, REACH);
+      if (s) { if (G.auth) pickUp(G.me, s); else netAct(0, s.id); G.fireLock = true; splat(1.2); } else toast('附近沒有固體');
+    }
+  }
+  if (e.code === 'KeyR') { G.recoil = !G.recoil; toast(G.recoil ? '噴射反作用力：開' : '噴射反作用力：關'); }
+  if (e.code === 'KeyT' && G.match) { if (G.auth) toggleCarry(G.me); else netAct(4); }
+  if (e.code === 'KeyT' && G.mode !== 'carry' && !G.match) { setCarry(!G.carry); toast(G.carry ? '開始扛人' : '放下隊友'); }
+  if (e.code === 'BracketLeft' && !G.match) changeStop(1 / 1.25);
+  if (e.code === 'BracketRight' && !G.match) changeStop(1.25);
+  if (e.code === 'KeyM' || e.code === 'Escape') { if (document.pointerLockElement) document.exitPointerLock(); openMenu(); }
+});
+function setType(p, t) { p.type = t; p.lastBlob = null; toast(TYPE_NAME[t] + '（正式版為固定類型）'); }
+function changeStop(f) {
+  POL.stopScale = clamp(POL.stopScale * f, 0.25, 3);
+  VOL.active = true; charts.forEach(c => { c.active = true; }); toast('停止濃度：固體 ' + stopOf(SOLID).toFixed(0) + '，液體 ' + stopOf(LIQUID).toFixed(0) + '，黏稠 ' + stopOf(STICKY).toFixed(0));
+}
+addEventListener('keyup', e => keys.delete(e.code));
+addEventListener('blur', () => { keys.clear(); mouseDown = false; });
+addEventListener('mousedown', e => { if (e.button === 0 && menu.hidden) mouseDown = true; });
+addEventListener('mouseup', e => { if (e.button === 0) mouseDown = false; });
+addEventListener('mousemove', e => {
+  if (!menu.hidden || G.mode === 'menu') return;
+  if (G.carry) {
+    G.p2Yaw = clamp(G.p2Yaw - e.movementX * 0.0026, -1.05, 1.05);
+    G.p2Pitch = clamp(G.p2Pitch - e.movementY * 0.0022, -0.7, 0.7);
+  } else {
+    G.viewYaw -= e.movementX * 0.0026;
+    G.viewPitch = clamp(G.viewPitch - e.movementY * 0.0022, -1.35, 1.35);
+  }
+});
+refreshLog();
+initNet();
+
+// 給自動化驗收與除錯使用的介面
+window.__m0 = { G, POL, VOL, TUNE, THROW, SPEC, charts, keys, start, step, diffuse, recount, LOG, setDown: v => { mouseDown = v; }, stopOf, setCarry, nearestSolid, pickUp, throwHeld, dropHeld, makeSolid, camera, Net, startSolo, netQueue, netLeave, pump, toggleCarry, nearestMate, killPlayer, hurt, screenSplat, encodeVol, applyVol, BN };
+})();
+</script>
